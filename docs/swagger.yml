@@ -1,0 +1,2788 @@
+openapi: 3.0.3
+info:
+  title: 射撃・狩猟帳簿管理サービス API
+  description: |
+    射撃および狩猟の帳簿をデジタル管理するためのAPI。
+    実包管理帳簿、出猟カレンダーなどの機能を提供。
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: https://api.example.com/api/v1
+    description: Production server
+  - url: http://localhost:8080/api/v1
+    description: Development server
+
+tags:
+  - name: Auth
+    description: 認証・ユーザー管理
+  - name: Firearms
+    description: 銃砲管理
+  - name: AmmunitionTypes
+    description: 実包種別マスタ管理
+  - name: AmmunitionPurchases
+    description: 実包購入記録管理
+  - name: AmmunitionUsages
+    description: 実包使用記録管理
+  - name: AmmunitionStock
+    description: 実包在庫・残数管理
+  - name: AmmunitionLimits
+    description: 実包所持許可上限管理
+  - name: HuntingRecords
+    description: 出猟記録管理
+  - name: Reports
+    description: 帳簿・レポート出力
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ============================================================
+  # 認証系 API
+  # ============================================================
+
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: ユーザー登録
+      description: |
+        新規ユーザーを登録します。
+        登録後、確認メールが送信されます。メール内のリンクをクリックしてメールアドレスを確認してください。
+      operationId: registerUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              email: hunter@example.com
+              password: SecurePass123!
+              name: 山田太郎
+      responses:
+        '201':
+          description: ユーザー登録成功（メール確認待ち）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+              example:
+                id: 550e8400-e29b-41d4-a716-446655440000
+                email: hunter@example.com
+                name: 山田太郎
+                email_verified: false
+                created_at: '2025-01-15T10:30:00Z'
+                message: 確認メールを送信しました。メール内のリンクをクリックしてください。
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: メールアドレス重複
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: EMAIL_ALREADY_EXISTS
+                message: このメールアドレスは既に登録されています
+
+  /auth/verify-email:
+    post:
+      tags:
+        - Auth
+      summary: メールアドレス確認
+      description: |
+        登録時に送信された確認メール内のトークンを使用してメールアドレスを確認します。
+        トークンの有効期限は24時間です。
+      operationId: verifyEmail
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+            example:
+              token: verification-token-from-email
+      responses:
+        '200':
+          description: メールアドレス確認成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: メールアドレスを確認しました。ログインできます。
+        '400':
+          description: トークン無効または期限切れ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: INVALID_TOKEN
+                message: トークンが無効または期限切れです
+
+  /auth/verify-email/resend:
+    post:
+      tags:
+        - Auth
+      summary: 確認メール再送信
+      description: メールアドレス確認メールを再送信します。
+      operationId: resendVerificationEmail
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendVerificationRequest'
+            example:
+              email: hunter@example.com
+      responses:
+        '202':
+          description: 確認メール送信受付
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: 確認メールを送信しました
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: ログイン
+      description: |
+        メールアドレスとパスワードでログインし、JWTトークンを取得します。
+
+        **アカウントロック:**
+        - 5回連続でログインに失敗するとアカウントがロックされます
+        - ロック時間は30分です
+        - ロック中はログインできません
+
+        **メール確認:**
+        - メールアドレスが確認されていない場合はログインできません
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: hunter@example.com
+              password: SecurePass123!
+      responses:
+        '200':
+          description: ログイン成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                refresh_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                token_type: Bearer
+                expires_in: 3600
+                user:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  email: hunter@example.com
+                  name: 山田太郎
+                  email_verified: true
+        '401':
+          description: 認証失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_credentials:
+                  summary: 認証情報不正
+                  value:
+                    code: INVALID_CREDENTIALS
+                    message: メールアドレスまたはパスワードが正しくありません
+                email_not_verified:
+                  summary: メール未確認
+                  value:
+                    code: EMAIL_NOT_VERIFIED
+                    message: メールアドレスが確認されていません。確認メールをご確認ください。
+        '423':
+          description: アカウントロック
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountLockedError'
+              example:
+                code: ACCOUNT_LOCKED
+                message: アカウントがロックされています
+                locked_until: '2025-01-15T11:00:00Z'
+                remaining_minutes: 25
+
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: ログアウト
+      description: 現在のアクセストークンとリフレッシュトークンを無効化します。
+      operationId: logout
+      responses:
+        '204':
+          description: ログアウト成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: トークンリフレッシュ
+      description: |
+        リフレッシュトークンを使用して新しいアクセストークンを取得します。
+        リフレッシュトークンも同時に更新されます（ローテーション方式）。
+      operationId: refreshToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+            example:
+              refresh_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: トークン更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+              example:
+                access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                refresh_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                token_type: Bearer
+                expires_in: 3600
+        '401':
+          description: リフレッシュトークン無効
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: INVALID_REFRESH_TOKEN
+                message: リフレッシュトークンが無効または期限切れです
+
+  /auth/password/forgot:
+    post:
+      tags:
+        - Auth
+      summary: パスワードリセット要求
+      description: |
+        パスワードリセットメールを送信します。
+        セキュリティ上、メールアドレスの存在有無に関わらず同じレスポンスを返します。
+        リセットトークンの有効期限は24時間です。
+      operationId: forgotPassword
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+            example:
+              email: hunter@example.com
+      responses:
+        '202':
+          description: パスワードリセットメール送信受付
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: パスワードリセットメールを送信しました
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/password/reset:
+    post:
+      tags:
+        - Auth
+      summary: パスワードリセット実行
+      description: |
+        パスワードリセットメール内のトークンを使用して新しいパスワードを設定します。
+        パスワードリセット後、全てのセッションが無効化されます。
+      operationId: resetPassword
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+            example:
+              token: reset-token-from-email
+              password: NewSecurePass456!
+      responses:
+        '200':
+          description: パスワードリセット成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: パスワードを更新しました。新しいパスワードでログインしてください。
+        '400':
+          description: トークン無効または期限切れ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: INVALID_TOKEN
+                message: トークンが無効または期限切れです
+
+  /auth/me:
+    get:
+      tags:
+        - Auth
+      summary: 現在のユーザー情報取得
+      description: ログイン中のユーザー情報を取得します。
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: ユーザー情報取得成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              example:
+                id: 550e8400-e29b-41d4-a716-446655440000
+                email: hunter@example.com
+                name: 山田太郎
+                email_verified: true
+                created_at: '2025-01-15T10:30:00Z'
+                updated_at: '2025-01-20T14:00:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      tags:
+        - Auth
+      summary: ユーザー情報更新
+      description: |
+        ログイン中のユーザー情報を更新します。
+        パスワードを変更する場合は、現在のパスワードの確認が必要です。
+      operationId: updateCurrentUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+            examples:
+              update_name:
+                summary: 名前のみ更新
+                value:
+                  name: 山田太郎（更新）
+              update_password:
+                summary: パスワード変更
+                value:
+                  current_password: SecurePass123!
+                  new_password: NewPassword789!
+      responses:
+        '200':
+          description: ユーザー情報更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              example:
+                id: 550e8400-e29b-41d4-a716-446655440000
+                email: hunter@example.com
+                name: 山田太郎（更新）
+                email_verified: true
+                created_at: '2025-01-15T10:30:00Z'
+                updated_at: '2025-01-25T09:00:00Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/me/delete:
+    post:
+      tags:
+        - Auth
+      summary: アカウント削除
+      description: |
+        アカウントを削除（論理削除）します。
+        確認のため、現在のパスワードが必要です。
+        削除後は全てのセッションが無効化され、ログインできなくなります。
+      operationId: deleteCurrentUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteUserRequest'
+            example:
+              password: SecurePass123!
+      responses:
+        '204':
+          description: アカウント削除成功
+        '400':
+          description: パスワード不正
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: INVALID_PASSWORD
+                message: パスワードが正しくありません
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================================
+  # 銃砲管理 API
+  # ============================================================
+
+  /firearms:
+    get:
+      tags:
+        - Firearms
+      summary: 銃砲一覧取得
+      description: ログインユーザーが登録した銃砲の一覧を取得します。
+      operationId: listFirearms
+      parameters:
+        - name: firearm_type
+          in: query
+          description: 銃種でフィルタリング
+          schema:
+            type: string
+            enum: [shotgun, rifle]
+        - name: sort
+          in: query
+          description: ソート順
+          schema:
+            type: string
+            enum: [created_at, name]
+            default: created_at
+        - name: order
+          in: query
+          description: 昇順/降順
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: 銃砲一覧取得成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  firearms:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Firearm'
+                  total:
+                    type: integer
+                    description: 総件数
+              example:
+                firearms:
+                  - id: 550e8400-e29b-41d4-a716-446655440001
+                    firearm_type: shotgun
+                    name: レミントン M870
+                    gun_number: 12345678
+                    permit_number: 第1234号
+                    caliber: 12番
+                    notes: クレー射撃用
+                    created_at: '2025-01-15T10:30:00Z'
+                    updated_at: '2025-01-15T10:30:00Z'
+                total: 1
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Firearms
+      summary: 銃砲登録
+      description: 新しい銃砲を登録します。
+      operationId: createFirearm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFirearmRequest'
+            example:
+              firearm_type: shotgun
+              name: レミントン M870
+              gun_number: '12345678'
+              permit_number: 第1234号
+              caliber: 12番
+              notes: クレー射撃用
+      responses:
+        '201':
+          description: 銃砲登録成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Firearm'
+              example:
+                id: 550e8400-e29b-41d4-a716-446655440001
+                firearm_type: shotgun
+                name: レミントン M870
+                gun_number: '12345678'
+                permit_number: 第1234号
+                caliber: 12番
+                notes: クレー射撃用
+                created_at: '2025-01-15T10:30:00Z'
+                updated_at: '2025-01-15T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /firearms/{firearmId}:
+    get:
+      tags:
+        - Firearms
+      summary: 銃砲詳細取得
+      description: 指定した銃砲の詳細情報を取得します。
+      operationId: getFirearm
+      parameters:
+        - $ref: '#/components/parameters/FirearmId'
+      responses:
+        '200':
+          description: 銃砲詳細取得成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Firearm'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - Firearms
+      summary: 銃砲更新
+      description: 指定した銃砲の情報を更新します。
+      operationId: updateFirearm
+      parameters:
+        - $ref: '#/components/parameters/FirearmId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFirearmRequest'
+            example:
+              name: レミントン M870 Express
+              notes: クレー射撃用（スポーツ仕様に改造）
+      responses:
+        '200':
+          description: 銃砲更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Firearm'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Firearms
+      summary: 銃砲削除
+      description: |
+        指定した銃砲を削除（論理削除）します。
+        この銃に紐づく実包購入・使用記録は削除されません。
+      operationId: deleteFirearm
+      parameters:
+        - $ref: '#/components/parameters/FirearmId'
+      responses:
+        '204':
+          description: 銃砲削除成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================================
+  # 実包種別マスタ API
+  # ============================================================
+
+  /ammunition-types:
+    get:
+      tags:
+        - AmmunitionTypes
+      summary: 実包種別一覧取得
+      description: ログインユーザーが登録した実包種別の一覧を取得します。
+      operationId: listAmmunitionTypes
+      parameters:
+        - name: caliber
+          in: query
+          description: 口径でフィルタリング
+          schema:
+            type: string
+        - name: is_slug
+          in: query
+          description: スラッグ弾かどうかでフィルタリング
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: 実包種別一覧取得成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ammunition_types:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AmmunitionType'
+                  total:
+                    type: integer
+                    description: 総件数
+              example:
+                ammunition_types:
+                  - id: 550e8400-e29b-41d4-a716-446655440010
+                    name: 12番 7.5号
+                    caliber: 12番
+                    shot_size: '7.5号'
+                    is_slug: false
+                    created_at: '2025-01-15T10:30:00Z'
+                    updated_at: '2025-01-15T10:30:00Z'
+                total: 1
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - AmmunitionTypes
+      summary: 実包種別登録
+      description: 新しい実包種別を登録します。
+      operationId: createAmmunitionType
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAmmunitionTypeRequest'
+            example:
+              name: 12番 7.5号
+              caliber: 12番
+              shot_size: '7.5号'
+              is_slug: false
+      responses:
+        '201':
+          description: 実包種別登録成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmmunitionType'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /ammunition-types/{ammunitionTypeId}:
+    get:
+      tags:
+        - AmmunitionTypes
+      summary: 実包種別詳細取得
+      description: 指定した実包種別の詳細情報を取得します。
+      operationId: getAmmunitionType
+      parameters:
+        - $ref: '#/components/parameters/AmmunitionTypeId'
+      responses:
+        '200':
+          description: 実包種別詳細取得成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmmunitionType'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - AmmunitionTypes
+      summary: 実包種別更新
+      description: 指定した実包種別の情報を更新します。
+      operationId: updateAmmunitionType
+      parameters:
+        - $ref: '#/components/parameters/AmmunitionTypeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAmmunitionTypeRequest'
+      responses:
+        '200':
+          description: 実包種別更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmmunitionType'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - AmmunitionTypes
+      summary: 実包種別削除
+      description: |
+        指定した実包種別を削除（論理削除）します。
+        この種別に紐づく購入・使用記録がある場合は削除できません。
+      operationId: deleteAmmunitionType
+      parameters:
+        - $ref: '#/components/parameters/AmmunitionTypeId'
+      responses:
+        '204':
+          description: 実包種別削除成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 紐づく記録があり削除不可
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: HAS_RELATED_RECORDS
+                message: この実包種別には購入または使用記録が紐づいているため削除できません
+
+  # ============================================================
+  # 実包購入記録 API
+  # ============================================================
+
+  /ammunition-purchases:
+    get:
+      tags:
+        - AmmunitionPurchases
+      summary: 実包購入記録一覧取得
+      description: |
+        ログインユーザーの実包購入記録一覧を取得します。
+        期間指定やフィルタリングが可能です。
+      operationId: listAmmunitionPurchases
+      parameters:
+        - name: ammunition_type_id
+          in: query
+          description: 実包種別IDでフィルタリング
+          schema:
+            type: string
+            format: uuid
+        - name: firearm_id
+          in: query
+          description: 銃砲IDでフィルタリング
+          schema:
+            type: string
+            format: uuid
+        - name: from_date
+          in: query
+          description: 開始日（この日以降）
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          description: 終了日（この日以前）
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          description: ページ番号
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: per_page
+          in: query
+          description: 1ページあたりの件数
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          description: ソート対象
+          schema:
+            type: string
+            enum: [purchase_date, created_at]
+            default: purchase_date
+        - name: order
+          in: query
+          description: ソート順
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: 購入記録一覧取得成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmmunitionPurchaseListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - AmmunitionPurchases
+      summary: 実包購入記録登録
+      description: |
+        実包購入記録を登録します。
+        許可上限を超える購入の場合は警告を返します。
+      operationId: createAmmunitionPurchase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAmmunitionPurchaseRequest'
+            example:
+              ammunition_type_id: 550e8400-e29b-41d4-a716-446655440010
+              firearm_id: 550e8400-e29b-41d4-a716-446655440001
+              purchase_date: '2025-01-15'
+              supplier: 〇〇銃砲店
+              quantity: 100
+              price: 5000
+              notes: クレー射撃大会用
+      responses:
+        '201':
+          description: 購入記録登録成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmmunitionPurchaseResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          description: 許可上限超過警告
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaWarning'
+              example:
+                code: QUOTA_EXCEEDED
+                message: この購入により許可上限を超えます
+                current_stock: 750
+                purchase_quantity: 100
+                max_quantity: 800
+                would_exceed_by: 50
+
+  /ammunition-purchases/{purchaseId}:
+    get:
+      tags:
+        - AmmunitionPurchases
+      summary: 実包購入記録詳細取得
+      description: 指定した購入記録の詳細情報を取得します。
+      operationId: getAmmunitionPurchase
+      parameters:
+        - $ref: '#/components/parameters/PurchaseId'
+      responses:
+        '200':
+          description: 購入記録詳細取得成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmmunitionPurchase'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - AmmunitionPurchases
+      summary: 実包購入記録更新
+      description: 指定した購入記録の情報を更新します。
+      operationId: updateAmmunitionPurchase
+      parameters:
+        - $ref: '#/components/parameters/PurchaseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAmmunitionPurchaseRequest'
+      responses:
+        '200':
+          description: 購入記録更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmmunitionPurchase'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - AmmunitionPurchases
+      summary: 実包購入記録削除
+      description: 指定した購入記録を削除（論理削除）します。
+      operationId: deleteAmmunitionPurchase
+      parameters:
+        - $ref: '#/components/parameters/PurchaseId'
+      responses:
+        '204':
+          description: 購入記録削除成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================================
+  # 実包在庫・残数 API
+  # ============================================================
+
+  /ammunition-stock:
+    get:
+      tags:
+        - AmmunitionStock
+      summary: 実包在庫一覧取得
+      description: |
+        現在の実包在庫（残数）と譲受可能残数を実包種別ごとに取得します。
+      operationId: getAmmunitionStock
+      responses:
+        '200':
+          description: 在庫一覧取得成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stocks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AmmunitionStock'
+              example:
+                stocks:
+                  - ammunition_type:
+                      id: 550e8400-e29b-41d4-a716-446655440010
+                      name: 12番 7.5号
+                      caliber: 12番
+                    current_stock: 150
+                    total_purchased: 500
+                    total_used: 350
+                    max_quantity: 800
+                    remaining_quota: 650
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /ammunition-stock/{ammunitionTypeId}:
+    get:
+      tags:
+        - AmmunitionStock
+      summary: 特定実包の在庫詳細取得
+      description: 指定した実包種別の在庫詳細を取得します。
+      operationId: getAmmunitionStockByType
+      parameters:
+        - $ref: '#/components/parameters/AmmunitionTypeId'
+      responses:
+        '200':
+          description: 在庫詳細取得成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmmunitionStockDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================================
+  # 実包所持許可上限 API
+  # ============================================================
+
+  /ammunition-limits:
+    get:
+      tags:
+        - AmmunitionLimits
+      summary: 実包所持許可上限一覧取得
+      description: ユーザーが設定した口径ごとの所持許可上限を取得します。
+      operationId: listAmmunitionLimits
+      responses:
+        '200':
+          description: 上限一覧取得成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  limits:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AmmunitionLimit'
+              example:
+                limits:
+                  - id: 550e8400-e29b-41d4-a716-446655440020
+                    caliber: 12番
+                    max_quantity: 800
+                    created_at: '2025-01-15T10:30:00Z'
+                    updated_at: '2025-01-15T10:30:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - AmmunitionLimits
+      summary: 実包所持許可上限登録
+      description: 口径ごとの所持許可上限を登録します。
+      operationId: createAmmunitionLimit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAmmunitionLimitRequest'
+            example:
+              caliber: 12番
+              max_quantity: 800
+      responses:
+        '201':
+          description: 上限登録成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmmunitionLimit'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: 同じ口径の上限が既に存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: CALIBER_LIMIT_EXISTS
+                message: この口径の上限は既に登録されています
+
+  /ammunition-limits/{limitId}:
+    patch:
+      tags:
+        - AmmunitionLimits
+      summary: 実包所持許可上限更新
+      description: 指定した上限設定を更新します。
+      operationId: updateAmmunitionLimit
+      parameters:
+        - $ref: '#/components/parameters/LimitId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAmmunitionLimitRequest'
+      responses:
+        '200':
+          description: 上限更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmmunitionLimit'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - AmmunitionLimits
+      summary: 実包所持許可上限削除
+      description: 指定した上限設定を削除します。
+      operationId: deleteAmmunitionLimit
+      parameters:
+        - $ref: '#/components/parameters/LimitId'
+      responses:
+        '204':
+          description: 上限削除成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================================
+  # 実包使用記録 API
+  # ============================================================
+
+  /ammunition-usages:
+    get:
+      tags:
+        - AmmunitionUsages
+      summary: 実包使用記録一覧取得
+      description: |
+        ログインユーザーの実包使用記録一覧を取得します。
+        期間指定やフィルタリングが可能です。
+      operationId: listAmmunitionUsages
+      parameters:
+        - name: ammunition_type_id
+          in: query
+          description: 実包種別IDでフィルタリング
+          schema:
+            type: string
+            format: uuid
+        - name: firearm_id
+          in: query
+          description: 銃砲IDでフィルタリング
+          schema:
+            type: string
+            format: uuid
+        - name: hunting_record_id
+          in: query
+          description: 出猟記録IDでフィルタリング
+          schema:
+            type: string
+            format: uuid
+        - name: from_date
+          in: query
+          description: 開始日（この日以降）
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          description: 終了日（この日以前）
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          description: ページ番号
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: per_page
+          in: query
+          description: 1ページあたりの件数
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          description: ソート対象
+          schema:
+            type: string
+            enum: [usage_date, created_at]
+            default: usage_date
+        - name: order
+          in: query
+          description: ソート順
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: 使用記録一覧取得成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmmunitionUsageListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - AmmunitionUsages
+      summary: 実包使用記録登録
+      description: |
+        実包使用記録を登録します。
+        在庫がマイナスになる場合はエラーを返します。
+      operationId: createAmmunitionUsage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAmmunitionUsageRequest'
+            example:
+              ammunition_type_id: 550e8400-e29b-41d4-a716-446655440010
+              firearm_id: 550e8400-e29b-41d4-a716-446655440001
+              hunting_record_id: 550e8400-e29b-41d4-a716-446655440030
+              usage_date: '2025-01-20'
+              location: 〇〇県△△山
+              quantity_used: 25
+              notes: クレー射撃練習
+      responses:
+        '201':
+          description: 使用記録登録成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmmunitionUsageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          description: 在庫不足エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockShortageError'
+              example:
+                code: INSUFFICIENT_STOCK
+                message: 在庫が不足しています
+                current_stock: 20
+                requested_quantity: 25
+
+  /ammunition-usages/{usageId}:
+    get:
+      tags:
+        - AmmunitionUsages
+      summary: 実包使用記録詳細取得
+      description: 指定した使用記録の詳細情報を取得します。
+      operationId: getAmmunitionUsage
+      parameters:
+        - $ref: '#/components/parameters/UsageId'
+      responses:
+        '200':
+          description: 使用記録詳細取得成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmmunitionUsage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - AmmunitionUsages
+      summary: 実包使用記録更新
+      description: 指定した使用記録の情報を更新します。
+      operationId: updateAmmunitionUsage
+      parameters:
+        - $ref: '#/components/parameters/UsageId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAmmunitionUsageRequest'
+      responses:
+        '200':
+          description: 使用記録更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmmunitionUsage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - AmmunitionUsages
+      summary: 実包使用記録削除
+      description: 指定した使用記録を削除（論理削除）します。
+      operationId: deleteAmmunitionUsage
+      parameters:
+        - $ref: '#/components/parameters/UsageId'
+      responses:
+        '204':
+          description: 使用記録削除成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================================
+  # 出猟記録 API
+  # ============================================================
+
+  /hunting-records:
+    get:
+      tags:
+        - HuntingRecords
+      summary: 出猟記録一覧取得
+      description: |
+        ログインユーザーの出猟記録一覧を取得します。
+        カレンダー表示用のデータも含まれます。
+      operationId: listHuntingRecords
+      parameters:
+        - name: year
+          in: query
+          description: 年でフィルタリング
+          schema:
+            type: integer
+        - name: month
+          in: query
+          description: 月でフィルタリング（yearと併用）
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - name: from_date
+          in: query
+          description: 開始日（この日以降）
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          description: 終了日（この日以前）
+          schema:
+            type: string
+            format: date
+        - name: is_planned
+          in: query
+          description: 予定/実績でフィルタリング
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          description: ページ番号
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: per_page
+          in: query
+          description: 1ページあたりの件数
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: 出猟記録一覧取得成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HuntingRecordListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - HuntingRecords
+      summary: 出猟記録登録
+      description: 出猟予定または実績を登録します。
+      operationId: createHuntingRecord
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHuntingRecordRequest'
+            example:
+              hunting_date: '2025-01-20'
+              location: 〇〇県△△山
+              is_planned: false
+              notes: イノシシ狩猟
+      responses:
+        '201':
+          description: 出猟記録登録成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HuntingRecord'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /hunting-records/{huntingRecordId}:
+    get:
+      tags:
+        - HuntingRecords
+      summary: 出猟記録詳細取得
+      description: |
+        指定した出猟記録の詳細情報を取得します。
+        紐づく実包使用記録も含まれます。
+      operationId: getHuntingRecord
+      parameters:
+        - $ref: '#/components/parameters/HuntingRecordId'
+      responses:
+        '200':
+          description: 出猟記録詳細取得成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HuntingRecordDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - HuntingRecords
+      summary: 出猟記録更新
+      description: 指定した出猟記録の情報を更新します。
+      operationId: updateHuntingRecord
+      parameters:
+        - $ref: '#/components/parameters/HuntingRecordId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateHuntingRecordRequest'
+      responses:
+        '200':
+          description: 出猟記録更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HuntingRecord'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - HuntingRecords
+      summary: 出猟記録削除
+      description: |
+        指定した出猟記録を削除（論理削除）します。
+        紐づく実包使用記録の hunting_record_id は null になります。
+      operationId: deleteHuntingRecord
+      parameters:
+        - $ref: '#/components/parameters/HuntingRecordId'
+      responses:
+        '204':
+          description: 出猟記録削除成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /hunting-records/statistics:
+    get:
+      tags:
+        - HuntingRecords
+      summary: 出猟統計取得
+      description: 月別・年別の出猟回数などの統計情報を取得します。
+      operationId: getHuntingStatistics
+      parameters:
+        - name: year
+          in: query
+          description: 対象年（指定しない場合は全期間）
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 統計情報取得成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HuntingStatistics'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================================
+  # 帳簿出力 API
+  # ============================================================
+
+  /reports/ammunition-ledger:
+    get:
+      tags:
+        - Reports
+      summary: 実包管理帳簿PDF出力
+      description: |
+        指定期間の実包管理帳簿をPDFで出力します。
+        警察提出用のフォーマットに対応しています。
+      operationId: generateAmmunitionLedger
+      parameters:
+        - name: from_date
+          in: query
+          required: true
+          description: 開始日
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          required: true
+          description: 終了日
+          schema:
+            type: string
+            format: date
+        - name: ammunition_type_id
+          in: query
+          description: 実包種別ID（指定しない場合は全種別）
+          schema:
+            type: string
+            format: uuid
+        - name: format
+          in: query
+          description: 出力形式
+          schema:
+            type: string
+            enum: [pdf, csv]
+            default: pdf
+      responses:
+        '200':
+          description: 帳簿出力成功
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            text/csv:
+              schema:
+                type: string
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: 'attachment; filename="ammunition_ledger_20250101_20251231.pdf"'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /reports/hunting-summary:
+    get:
+      tags:
+        - Reports
+      summary: 出猟サマリーPDF出力
+      description: 指定期間の出猟サマリーをPDFで出力します。
+      operationId: generateHuntingSummary
+      parameters:
+        - name: from_date
+          in: query
+          required: true
+          description: 開始日
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          required: true
+          description: 終了日
+          schema:
+            type: string
+            format: date
+        - name: format
+          in: query
+          description: 出力形式
+          schema:
+            type: string
+            enum: [pdf, csv]
+            default: pdf
+      responses:
+        '200':
+          description: サマリー出力成功
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            text/csv:
+              schema:
+                type: string
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: 'attachment; filename="hunting_summary_20250101_20251231.pdf"'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT認証。ログインで取得したアクセストークンを使用します。
+
+        **トークン有効期限:**
+        - アクセストークン: 1時間
+        - リフレッシュトークン: 30日
+
+  schemas:
+    # ============================================================
+    # Request Schemas
+    # ============================================================
+
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: メールアドレス
+          example: hunter@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 100
+          description: |
+            パスワード（8文字以上、英数字混合推奨）
+          example: SecurePass123!
+        name:
+          type: string
+          maxLength: 100
+          description: ユーザー名
+          example: 山田太郎
+
+    VerifyEmailRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: メール確認トークン（確認メールに含まれる）
+          example: verification-token-from-email
+
+    ResendVerificationRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: 登録済みメールアドレス
+          example: hunter@example.com
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: メールアドレス
+          example: hunter@example.com
+        password:
+          type: string
+          format: password
+          description: パスワード
+          example: SecurePass123!
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          description: リフレッシュトークン
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: 登録済みメールアドレス
+          example: hunter@example.com
+
+    ResetPasswordRequest:
+      type: object
+      required:
+        - token
+        - password
+      properties:
+        token:
+          type: string
+          description: パスワードリセットトークン（リセットメールに含まれる）
+          example: reset-token-from-email
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 100
+          description: 新しいパスワード（8文字以上）
+          example: NewSecurePass456!
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: ユーザー名
+          example: 山田太郎（更新）
+        current_password:
+          type: string
+          format: password
+          description: 現在のパスワード（パスワード変更時に必須）
+          example: SecurePass123!
+        new_password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 100
+          description: 新しいパスワード（8文字以上）
+          example: NewPassword789!
+
+    DeleteUserRequest:
+      type: object
+      required:
+        - password
+      properties:
+        password:
+          type: string
+          format: password
+          description: 現在のパスワード（確認用）
+          example: SecurePass123!
+
+    # ============================================================
+    # Response Schemas
+    # ============================================================
+
+    RegisterResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ユーザーID
+        email:
+          type: string
+          format: email
+          description: メールアドレス
+        name:
+          type: string
+          description: ユーザー名
+        email_verified:
+          type: boolean
+          description: メールアドレス確認済みフラグ
+        created_at:
+          type: string
+          format: date-time
+          description: 作成日時
+        message:
+          type: string
+          description: メッセージ
+
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: アクセストークン
+        refresh_token:
+          type: string
+          description: リフレッシュトークン
+        token_type:
+          type: string
+          enum: [Bearer]
+          description: トークンタイプ
+        expires_in:
+          type: integer
+          description: アクセストークン有効期限（秒）
+        user:
+          $ref: '#/components/schemas/UserBasic'
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: アクセストークン
+        refresh_token:
+          type: string
+          description: リフレッシュトークン
+        token_type:
+          type: string
+          enum: [Bearer]
+          description: トークンタイプ
+        expires_in:
+          type: integer
+          description: アクセストークン有効期限（秒）
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: メッセージ
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ユーザーID
+        email:
+          type: string
+          format: email
+          description: メールアドレス
+        name:
+          type: string
+          description: ユーザー名
+        email_verified:
+          type: boolean
+          description: メールアドレス確認済みフラグ
+        created_at:
+          type: string
+          format: date-time
+          description: 作成日時
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新日時
+
+    UserBasic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ユーザーID
+        email:
+          type: string
+          format: email
+          description: メールアドレス
+        name:
+          type: string
+          description: ユーザー名
+        email_verified:
+          type: boolean
+          description: メールアドレス確認済みフラグ
+
+    # ============================================================
+    # Error Schemas
+    # ============================================================
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          description: エラーコード
+        message:
+          type: string
+          description: エラーメッセージ
+
+    ValidationError:
+      type: object
+      properties:
+        code:
+          type: string
+          enum: [VALIDATION_ERROR]
+          description: エラーコード
+        message:
+          type: string
+          description: エラーメッセージ
+        details:
+          type: array
+          description: フィールドごとのエラー詳細
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: エラーのあるフィールド名
+              message:
+                type: string
+                description: エラー内容
+
+    AccountLockedError:
+      type: object
+      properties:
+        code:
+          type: string
+          enum: [ACCOUNT_LOCKED]
+          description: エラーコード
+        message:
+          type: string
+          description: エラーメッセージ
+        locked_until:
+          type: string
+          format: date-time
+          description: ロック解除日時
+        remaining_minutes:
+          type: integer
+          description: ロック解除までの残り時間（分）
+
+    # ============================================================
+    # Firearm Schemas
+    # ============================================================
+
+    Firearm:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 銃砲ID
+        firearm_type:
+          type: string
+          enum: [shotgun, rifle]
+          description: 銃種（散弾銃/ライフル）
+        name:
+          type: string
+          description: 銃の名称
+        gun_number:
+          type: string
+          description: 銃番号
+        permit_number:
+          type: string
+          description: 許可番号
+        caliber:
+          type: string
+          description: 適合実包の口径
+        notes:
+          type: string
+          description: 備考
+        created_at:
+          type: string
+          format: date-time
+          description: 作成日時
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新日時
+
+    CreateFirearmRequest:
+      type: object
+      required:
+        - firearm_type
+        - name
+        - gun_number
+        - permit_number
+      properties:
+        firearm_type:
+          type: string
+          enum: [shotgun, rifle]
+          description: 銃種（散弾銃/ライフル）
+        name:
+          type: string
+          maxLength: 200
+          description: 銃の名称
+        gun_number:
+          type: string
+          maxLength: 100
+          description: 銃番号
+        permit_number:
+          type: string
+          maxLength: 100
+          description: 許可番号
+        caliber:
+          type: string
+          maxLength: 50
+          description: 適合実包の口径
+        notes:
+          type: string
+          description: 備考
+
+    UpdateFirearmRequest:
+      type: object
+      properties:
+        firearm_type:
+          type: string
+          enum: [shotgun, rifle]
+          description: 銃種（散弾銃/ライフル）
+        name:
+          type: string
+          maxLength: 200
+          description: 銃の名称
+        gun_number:
+          type: string
+          maxLength: 100
+          description: 銃番号
+        permit_number:
+          type: string
+          maxLength: 100
+          description: 許可番号
+        caliber:
+          type: string
+          maxLength: 50
+          description: 適合実包の口径
+        notes:
+          type: string
+          description: 備考
+
+    # ============================================================
+    # AmmunitionType Schemas
+    # ============================================================
+
+    AmmunitionType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 実包種別ID
+        name:
+          type: string
+          description: 実包名称（例：12番 7.5号）
+        caliber:
+          type: string
+          description: 口径（例：12番）
+        shot_size:
+          type: string
+          description: 散弾サイズ（例：7.5号）
+        is_slug:
+          type: boolean
+          description: スラッグ弾フラグ
+        created_at:
+          type: string
+          format: date-time
+          description: 作成日時
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新日時
+
+    CreateAmmunitionTypeRequest:
+      type: object
+      required:
+        - name
+        - caliber
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          description: 実包名称
+        caliber:
+          type: string
+          maxLength: 50
+          description: 口径
+        shot_size:
+          type: string
+          maxLength: 50
+          description: 散弾サイズ
+        is_slug:
+          type: boolean
+          default: false
+          description: スラッグ弾フラグ
+
+    UpdateAmmunitionTypeRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          description: 実包名称
+        caliber:
+          type: string
+          maxLength: 50
+          description: 口径
+        shot_size:
+          type: string
+          maxLength: 50
+          description: 散弾サイズ
+        is_slug:
+          type: boolean
+          description: スラッグ弾フラグ
+
+    # ============================================================
+    # AmmunitionPurchase Schemas
+    # ============================================================
+
+    AmmunitionPurchase:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 購入記録ID
+        ammunition_type:
+          $ref: '#/components/schemas/AmmunitionType'
+        firearm:
+          $ref: '#/components/schemas/Firearm'
+        purchase_date:
+          type: string
+          format: date
+          description: 購入日
+        supplier:
+          type: string
+          description: 購入先
+        quantity:
+          type: integer
+          description: 購入数量
+        price:
+          type: integer
+          description: 金額
+        notes:
+          type: string
+          description: 備考
+        created_at:
+          type: string
+          format: date-time
+          description: 作成日時
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新日時
+
+    AmmunitionPurchaseListResponse:
+      type: object
+      properties:
+        purchases:
+          type: array
+          items:
+            $ref: '#/components/schemas/AmmunitionPurchase'
+        total:
+          type: integer
+          description: 総件数
+        page:
+          type: integer
+          description: 現在のページ
+        per_page:
+          type: integer
+          description: 1ページあたりの件数
+        total_pages:
+          type: integer
+          description: 総ページ数
+
+    AmmunitionPurchaseResponse:
+      allOf:
+        - $ref: '#/components/schemas/AmmunitionPurchase'
+        - type: object
+          properties:
+            stock_after:
+              type: integer
+              description: 購入後の在庫数
+            quota_warning:
+              type: boolean
+              description: 上限警告フラグ
+
+    CreateAmmunitionPurchaseRequest:
+      type: object
+      required:
+        - ammunition_type_id
+        - purchase_date
+        - supplier
+        - quantity
+      properties:
+        ammunition_type_id:
+          type: string
+          format: uuid
+          description: 実包種別ID
+        firearm_id:
+          type: string
+          format: uuid
+          description: 銃砲ID（任意）
+        purchase_date:
+          type: string
+          format: date
+          description: 購入日
+        supplier:
+          type: string
+          maxLength: 200
+          description: 購入先
+        quantity:
+          type: integer
+          minimum: 1
+          description: 購入数量
+        price:
+          type: integer
+          minimum: 0
+          description: 金額
+        notes:
+          type: string
+          description: 備考
+
+    UpdateAmmunitionPurchaseRequest:
+      type: object
+      properties:
+        ammunition_type_id:
+          type: string
+          format: uuid
+          description: 実包種別ID
+        firearm_id:
+          type: string
+          format: uuid
+          description: 銃砲ID
+        purchase_date:
+          type: string
+          format: date
+          description: 購入日
+        supplier:
+          type: string
+          maxLength: 200
+          description: 購入先
+        quantity:
+          type: integer
+          minimum: 1
+          description: 購入数量
+        price:
+          type: integer
+          minimum: 0
+          description: 金額
+        notes:
+          type: string
+          description: 備考
+
+    # ============================================================
+    # AmmunitionStock Schemas
+    # ============================================================
+
+    AmmunitionStock:
+      type: object
+      properties:
+        ammunition_type:
+          $ref: '#/components/schemas/AmmunitionType'
+        current_stock:
+          type: integer
+          description: 現在の在庫数
+        total_purchased:
+          type: integer
+          description: 累計購入数
+        total_used:
+          type: integer
+          description: 累計使用数
+        max_quantity:
+          type: integer
+          description: 許可上限数
+        remaining_quota:
+          type: integer
+          description: 譲受可能残数
+
+    AmmunitionStockDetail:
+      allOf:
+        - $ref: '#/components/schemas/AmmunitionStock'
+        - type: object
+          properties:
+            recent_purchases:
+              type: array
+              items:
+                $ref: '#/components/schemas/AmmunitionPurchase'
+              description: 直近の購入記録
+            recent_usages:
+              type: array
+              items:
+                $ref: '#/components/schemas/AmmunitionUsage'
+              description: 直近の使用記録
+
+    # ============================================================
+    # AmmunitionLimit Schemas
+    # ============================================================
+
+    AmmunitionLimit:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 上限設定ID
+        caliber:
+          type: string
+          description: 口径
+        max_quantity:
+          type: integer
+          description: 許可上限数
+        created_at:
+          type: string
+          format: date-time
+          description: 作成日時
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新日時
+
+    CreateAmmunitionLimitRequest:
+      type: object
+      required:
+        - caliber
+        - max_quantity
+      properties:
+        caliber:
+          type: string
+          maxLength: 50
+          description: 口径
+        max_quantity:
+          type: integer
+          minimum: 1
+          description: 許可上限数
+
+    UpdateAmmunitionLimitRequest:
+      type: object
+      properties:
+        max_quantity:
+          type: integer
+          minimum: 1
+          description: 許可上限数
+
+    QuotaWarning:
+      type: object
+      properties:
+        code:
+          type: string
+          enum: [QUOTA_EXCEEDED]
+        message:
+          type: string
+        current_stock:
+          type: integer
+          description: 現在の在庫数
+        purchase_quantity:
+          type: integer
+          description: 購入予定数
+        max_quantity:
+          type: integer
+          description: 許可上限数
+        would_exceed_by:
+          type: integer
+          description: 超過数
+
+    # ============================================================
+    # AmmunitionUsage Schemas
+    # ============================================================
+
+    AmmunitionUsage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 使用記録ID
+        ammunition_type:
+          $ref: '#/components/schemas/AmmunitionType'
+        firearm:
+          $ref: '#/components/schemas/Firearm'
+        hunting_record:
+          $ref: '#/components/schemas/HuntingRecordBasic'
+        usage_date:
+          type: string
+          format: date
+          description: 使用日
+        location:
+          type: string
+          description: 使用場所
+        quantity_used:
+          type: integer
+          description: 使用数量
+        notes:
+          type: string
+          description: 備考
+        created_at:
+          type: string
+          format: date-time
+          description: 作成日時
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新日時
+
+    AmmunitionUsageListResponse:
+      type: object
+      properties:
+        usages:
+          type: array
+          items:
+            $ref: '#/components/schemas/AmmunitionUsage'
+        total:
+          type: integer
+          description: 総件数
+        page:
+          type: integer
+          description: 現在のページ
+        per_page:
+          type: integer
+          description: 1ページあたりの件数
+        total_pages:
+          type: integer
+          description: 総ページ数
+
+    AmmunitionUsageResponse:
+      allOf:
+        - $ref: '#/components/schemas/AmmunitionUsage'
+        - type: object
+          properties:
+            stock_after:
+              type: integer
+              description: 使用後の在庫数
+
+    CreateAmmunitionUsageRequest:
+      type: object
+      required:
+        - ammunition_type_id
+        - usage_date
+        - quantity_used
+      properties:
+        ammunition_type_id:
+          type: string
+          format: uuid
+          description: 実包種別ID
+        firearm_id:
+          type: string
+          format: uuid
+          description: 銃砲ID（任意）
+        hunting_record_id:
+          type: string
+          format: uuid
+          description: 出猟記録ID（任意）
+        usage_date:
+          type: string
+          format: date
+          description: 使用日
+        location:
+          type: string
+          maxLength: 200
+          description: 使用場所
+        quantity_used:
+          type: integer
+          minimum: 1
+          description: 使用数量
+        notes:
+          type: string
+          description: 備考
+
+    UpdateAmmunitionUsageRequest:
+      type: object
+      properties:
+        ammunition_type_id:
+          type: string
+          format: uuid
+          description: 実包種別ID
+        firearm_id:
+          type: string
+          format: uuid
+          description: 銃砲ID
+        hunting_record_id:
+          type: string
+          format: uuid
+          description: 出猟記録ID
+        usage_date:
+          type: string
+          format: date
+          description: 使用日
+        location:
+          type: string
+          maxLength: 200
+          description: 使用場所
+        quantity_used:
+          type: integer
+          minimum: 1
+          description: 使用数量
+        notes:
+          type: string
+          description: 備考
+
+    StockShortageError:
+      type: object
+      properties:
+        code:
+          type: string
+          enum: [INSUFFICIENT_STOCK]
+        message:
+          type: string
+        current_stock:
+          type: integer
+          description: 現在の在庫数
+        requested_quantity:
+          type: integer
+          description: 要求数量
+
+    # ============================================================
+    # HuntingRecord Schemas
+    # ============================================================
+
+    HuntingRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 出猟記録ID
+        hunting_date:
+          type: string
+          format: date
+          description: 出猟日
+        location:
+          type: string
+          description: 出猟場所
+        is_planned:
+          type: boolean
+          description: 予定フラグ（true=予定、false=実績）
+        notes:
+          type: string
+          description: 備考
+        created_at:
+          type: string
+          format: date-time
+          description: 作成日時
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新日時
+
+    HuntingRecordBasic:
+      type: object
+      description: 出猟記録の基本情報（参照用）
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 出猟記録ID
+        hunting_date:
+          type: string
+          format: date
+          description: 出猟日
+        location:
+          type: string
+          description: 出猟場所
+
+    HuntingRecordDetail:
+      allOf:
+        - $ref: '#/components/schemas/HuntingRecord'
+        - type: object
+          properties:
+            ammunition_usages:
+              type: array
+              items:
+                $ref: '#/components/schemas/AmmunitionUsage'
+              description: 紐づく実包使用記録
+            total_ammunition_used:
+              type: integer
+              description: 使用実包合計
+
+    HuntingRecordListResponse:
+      type: object
+      properties:
+        hunting_records:
+          type: array
+          items:
+            $ref: '#/components/schemas/HuntingRecord'
+        total:
+          type: integer
+          description: 総件数
+        page:
+          type: integer
+          description: 現在のページ
+        per_page:
+          type: integer
+          description: 1ページあたりの件数
+        total_pages:
+          type: integer
+          description: 総ページ数
+
+    CreateHuntingRecordRequest:
+      type: object
+      required:
+        - hunting_date
+      properties:
+        hunting_date:
+          type: string
+          format: date
+          description: 出猟日
+        location:
+          type: string
+          maxLength: 200
+          description: 出猟場所
+        is_planned:
+          type: boolean
+          default: true
+          description: 予定フラグ（true=予定、false=実績）
+        notes:
+          type: string
+          description: 備考
+
+    UpdateHuntingRecordRequest:
+      type: object
+      properties:
+        hunting_date:
+          type: string
+          format: date
+          description: 出猟日
+        location:
+          type: string
+          maxLength: 200
+          description: 出猟場所
+        is_planned:
+          type: boolean
+          description: 予定フラグ
+        notes:
+          type: string
+          description: 備考
+
+    HuntingStatistics:
+      type: object
+      properties:
+        total_hunting_days:
+          type: integer
+          description: 総出猟日数
+        total_planned:
+          type: integer
+          description: 予定数
+        total_completed:
+          type: integer
+          description: 実績数
+        monthly_statistics:
+          type: array
+          items:
+            type: object
+            properties:
+              year:
+                type: integer
+              month:
+                type: integer
+              hunting_count:
+                type: integer
+                description: 出猟回数
+              ammunition_used:
+                type: integer
+                description: 使用実包数
+        locations:
+          type: array
+          items:
+            type: object
+            properties:
+              location:
+                type: string
+              count:
+                type: integer
+          description: 出猟場所別の回数
+
+  responses:
+    BadRequest:
+      description: リクエスト不正
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+          example:
+            code: VALIDATION_ERROR
+            message: 入力内容に誤りがあります
+            details:
+              - field: email
+                message: 有効なメールアドレスを入力してください
+              - field: password
+                message: パスワードは8文字以上で入力してください
+
+    Unauthorized:
+      description: 認証エラー
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: UNAUTHORIZED
+            message: 認証が必要です
+
+    NotFound:
+      description: リソースが見つかりません
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: NOT_FOUND
+            message: 指定されたリソースが見つかりません
+
+    TooManyRequests:
+      description: リクエスト制限超過
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: TOO_MANY_REQUESTS
+            message: リクエストが多すぎます。しばらく待ってから再試行してください
+
+  parameters:
+    FirearmId:
+      name: firearmId
+      in: path
+      required: true
+      description: 銃砲ID
+      schema:
+        type: string
+        format: uuid
+
+    AmmunitionTypeId:
+      name: ammunitionTypeId
+      in: path
+      required: true
+      description: 実包種別ID
+      schema:
+        type: string
+        format: uuid
+
+    PurchaseId:
+      name: purchaseId
+      in: path
+      required: true
+      description: 購入記録ID
+      schema:
+        type: string
+        format: uuid
+
+    LimitId:
+      name: limitId
+      in: path
+      required: true
+      description: 上限設定ID
+      schema:
+        type: string
+        format: uuid
+
+    UsageId:
+      name: usageId
+      in: path
+      required: true
+      description: 使用記録ID
+      schema:
+        type: string
+        format: uuid
+
+    HuntingRecordId:
+      name: huntingRecordId
+      in: path
+      required: true
+      description: 出猟記録ID
+      schema:
+        type: string
+        format: uuid

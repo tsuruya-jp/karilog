@@ -20,6 +20,7 @@ target
 
 # MCP configuration (contains local paths)
 .mcp.json
+.serena/
 
 # IDE settings
 .vscode/

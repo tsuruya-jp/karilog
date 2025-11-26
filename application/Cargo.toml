@@ -1,0 +1,22 @@
+[package]
+name = "application"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+domain = { path = "../domain" }
+infrastructure = { path = "../infrastructure" }
+shared = { path = "../shared" }
+chrono.workspace = true
+uuid.workspace = true
+serde.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+validator.workspace = true
+tracing.workspace = true
+async-trait.workspace = true
+md5.workspace = true
+
+[dev-dependencies]
+mockall.workspace = true
+tokio.workspace = true

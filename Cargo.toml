@@ -1,0 +1,82 @@
+[package]
+name = "karilog"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "app"
+path = "src/main.rs"
+
+[workspace]
+members = [
+    "domain",
+    "application",
+    "infrastructure",
+    "presentation",
+    "shared",
+    "container",
+]
+resolver = "2"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+axum = "0.7"
+tracing.workspace = true
+tracing-subscriber.workspace = true
+sqlx.workspace = true
+anyhow.workspace = true
+tower-http.workspace = true
+dotenvy.workspace = true
+application.workspace = true
+infrastructure.workspace = true
+presentation.workspace = true
+shared.workspace = true
+container.workspace = true
+
+[workspace.dependencies]
+domain = { path = "./domain" }
+application = { path = "./application" }
+infrastructure = { path = "./infrastructure" }
+presentation = { path = "./presentation" }
+shared = { path = "./shared" }
+container = { path = "./container" }
+# 非同期ランタイム
+tokio = { version = "1", features = ["full"] }
+# Webフレームワーク
+axum = { version = "0.7", features = ["macros"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+# シリアライゼーション
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# データベース
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "uuid", "chrono"] }
+# 認証
+jsonwebtoken = "9"
+argon2 = "0.5"
+# 日付・時刻
+chrono = { version = "0.4", features = ["serde"] }
+# UUID
+uuid = { version = "1", features = ["v4", "serde"] }
+# エラーハンドリング
+anyhow = "1"
+thiserror = "1"
+# ロギング
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+# 設定管理
+config = "0.14"
+# ハッシュ
+md5 = "0.7"
+# バリデーション
+validator = { version = "0.18", features = ["derive"] }
+# PDF生成
+genpdf = "0.2"
+# メール送信
+aws-sdk-sesv2 = "1"
+aws-config = "1"
+# テスト
+mockall = "0.13"
+async-trait = "0.1.89"
+# 環境変数読み込み
+dotenvy = "0.15"

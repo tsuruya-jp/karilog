@@ -1,0 +1,17 @@
+[package]
+name = "domain"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+shared.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+serde.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+validator.workspace = true
+async-trait.workspace = true
+
+[dev-dependencies]
+mockall.workspace = true

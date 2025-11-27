@@ -40,14 +40,24 @@ async fn main() -> anyhow::Result<()> {
         auth_usecases: container.auth_usecases.clone(),
     };
 
-    // Axumアプリ構築
-    let app = presentation::routes::create_router(auth_state, container.jwt_service.clone())
-        .layer(
-            CorsLayer::new()
-                .allow_origin(Any)
-                .allow_methods(Any)
-                .allow_headers(Any),
-        );
+    // Axumアプリ構築（Phase2・Phase3のユースケースも含む）
+    let app = presentation::routes::create_router(
+        auth_state,
+        container.jwt_service.clone(),
+        container.firearm_usecases.clone(),
+        container.ammunition_type_usecases.clone(),
+        container.ammunition_limit_usecases.clone(),
+        container.ammunition_purchase_usecases.clone(),
+        container.ammunition_usage_usecases.clone(),
+        container.ammunition_stock_usecases.clone(),
+        container.hunting_record_usecases.clone(),
+    )
+    .layer(
+        CorsLayer::new()
+            .allow_origin(Any)
+            .allow_methods(Any)
+            .allow_headers(Any),
+    );
 
     // サーバー起動
     let addr = SocketAddr::from((

@@ -85,6 +85,7 @@ docker run -p 8080:8080 -e SWAGGER_JSON=/docs/swagger.yml -v $(pwd)/docs:/docs s
 |----------|------|------|
 | GET | /api/v1/ammunition-limits | 上限一覧取得 |
 | POST | /api/v1/ammunition-limits | 上限登録 |
+| GET | /api/v1/ammunition-limits/{id} | 上限詳細取得 |
 | PATCH | /api/v1/ammunition-limits/{id} | 上限更新 |
 | DELETE | /api/v1/ammunition-limits/{id} | 上限削除 |
 
@@ -94,10 +95,10 @@ docker run -p 8080:8080 -e SWAGGER_JSON=/docs/swagger.yml -v $(pwd)/docs:/docs s
 |----------|------|------|
 | GET | /api/v1/hunting-records | 出猟記録一覧取得 |
 | POST | /api/v1/hunting-records | 出猟記録登録 |
+| GET | /api/v1/hunting-records/statistics | 出猟統計取得 |
 | GET | /api/v1/hunting-records/{id} | 出猟記録詳細取得 |
 | PATCH | /api/v1/hunting-records/{id} | 出猟記録更新 |
 | DELETE | /api/v1/hunting-records/{id} | 出猟記録削除 |
-| GET | /api/v1/hunting-records/statistics | 出猟統計取得 |
 
 ### 帳簿出力 (Reports)
 

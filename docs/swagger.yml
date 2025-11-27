@@ -550,7 +550,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /firearms/{firearmId}:
+  /firearms/{id}:
     get:
       tags:
         - Firearms
@@ -699,7 +699,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /ammunition-types/{ammunitionTypeId}:
+  /ammunition-types/{id}:
     get:
       tags:
         - AmmunitionTypes
@@ -899,7 +899,7 @@ paths:
                 max_quantity: 800
                 would_exceed_by: 50
 
-  /ammunition-purchases/{purchaseId}:
+  /ammunition-purchases/{id}:
     get:
       tags:
         - AmmunitionPurchases
@@ -1002,7 +1002,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /ammunition-stock/{ammunitionTypeId}:
+  /ammunition-stock/{id}:
     get:
       tags:
         - AmmunitionStock
@@ -1092,7 +1092,27 @@ paths:
                 code: CALIBER_LIMIT_EXISTS
                 message: この口径の上限は既に登録されています
 
-  /ammunition-limits/{limitId}:
+  /ammunition-limits/{id}:
+    get:
+      tags:
+        - AmmunitionLimits
+      summary: 実包所持許可上限詳細取得
+      description: 指定した上限設定の詳細情報を取得します。
+      operationId: getAmmunitionLimit
+      parameters:
+        - $ref: '#/components/parameters/LimitId'
+      responses:
+        '200':
+          description: 上限詳細取得成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmmunitionLimit'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
     patch:
       tags:
         - AmmunitionLimits
@@ -1265,7 +1285,7 @@ paths:
                 current_stock: 20
                 requested_quantity: 25
 
-  /ammunition-usages/{usageId}:
+  /ammunition-usages/{id}:
     get:
       tags:
         - AmmunitionUsages
@@ -1427,7 +1447,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /hunting-records/{huntingRecordId}:
+  /hunting-records/{id}:
     get:
       tags:
         - HuntingRecords
@@ -2734,7 +2754,7 @@ components:
 
   parameters:
     FirearmId:
-      name: firearmId
+      name: id
       in: path
       required: true
       description: 銃砲ID
@@ -2743,7 +2763,7 @@ components:
         format: uuid
 
     AmmunitionTypeId:
-      name: ammunitionTypeId
+      name: id
       in: path
       required: true
       description: 実包種別ID
@@ -2752,7 +2772,7 @@ components:
         format: uuid
 
     PurchaseId:
-      name: purchaseId
+      name: id
       in: path
       required: true
       description: 購入記録ID
@@ -2761,7 +2781,7 @@ components:
         format: uuid
 
     LimitId:
-      name: limitId
+      name: id
       in: path
       required: true
       description: 上限設定ID
@@ -2770,7 +2790,7 @@ components:
         format: uuid
 
     UsageId:
-      name: usageId
+      name: id
       in: path
       required: true
       description: 使用記録ID
@@ -2779,7 +2799,7 @@ components:
         format: uuid
 
     HuntingRecordId:
-      name: huntingRecordId
+      name: id
       in: path
       required: true
       description: 出猟記録ID

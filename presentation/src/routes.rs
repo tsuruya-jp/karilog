@@ -19,9 +19,15 @@ use crate::handlers::{
     create_hunting_record, delete_hunting_record, get_hunting_record, get_statistics,
     list_hunting_records, update_hunting_record,
 };
+// Phase4: 帳簿出力
+use crate::handlers::{
+    generate_ammunition_ledger_pdf, generate_ammunition_purchases_csv,
+    generate_ammunition_usages_csv, generate_hunting_records_csv, generate_hunting_summary_pdf,
+};
 use application::usecases::{
     AmmunitionLimitUsecases, AmmunitionPurchaseUsecases, AmmunitionStockUsecases,
     AmmunitionTypeUsecases, AmmunitionUsageUsecases, FirearmUsecases, HuntingRecordUsecases,
+    ReportUsecases,
 };
 use axum::{
     routing::{delete, get, patch, post},
@@ -30,6 +36,7 @@ use axum::{
 use std::sync::Arc;
 
 /// ルーターを作成
+#[allow(clippy::too_many_arguments)]
 pub fn create_router(
     auth_state: AuthState,
     jwt_service: Arc<infrastructure::services::JwtService>,
@@ -42,6 +49,8 @@ pub fn create_router(
     ammunition_stock_usecases: Arc<AmmunitionStockUsecases>,
     // Phase3のユースケース
     hunting_record_usecases: Arc<HuntingRecordUsecases>,
+    // Phase4のユースケース
+    report_usecases: Arc<ReportUsecases>,
 ) -> Router {
     // 認証不要のルート
     let public_auth_routes = Router::new()
@@ -134,6 +143,25 @@ pub fn create_router(
         .with_state(hunting_record_usecases)
         .layer(axum::extract::Extension(jwt_service.clone()));
 
+    // Phase4: レポート出力ルート（認証必須）
+    let report_routes = Router::new()
+        .route(
+            "/ammunition-ledger/pdf",
+            post(generate_ammunition_ledger_pdf),
+        )
+        .route("/hunting-summary/pdf", post(generate_hunting_summary_pdf))
+        .route(
+            "/ammunition-purchases/csv",
+            post(generate_ammunition_purchases_csv),
+        )
+        .route(
+            "/ammunition-usages/csv",
+            post(generate_ammunition_usages_csv),
+        )
+        .route("/hunting-records/csv", post(generate_hunting_records_csv))
+        .with_state(report_usecases)
+        .layer(axum::extract::Extension(jwt_service.clone()));
+
     // メインルーター
     Router::new()
         .route("/health", get(health_check))
@@ -145,4 +173,5 @@ pub fn create_router(
         .nest("/api/v1/ammunition-usages", ammunition_usage_routes)
         .nest("/api/v1/ammunition-stock", ammunition_stock_routes)
         .nest("/api/v1/hunting-records", hunting_record_routes)
+        .nest("/api/v1/reports", report_routes)
 }

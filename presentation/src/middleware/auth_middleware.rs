@@ -34,9 +34,10 @@ where
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         // ExtensionからJwtServiceを取得
-        let Extension(jwt_service) = Extension::<Arc<JwtService>>::from_request_parts(parts, _state)
-            .await
-            .map_err(|_| AuthError::InternalError)?;
+        let Extension(jwt_service) =
+            Extension::<Arc<JwtService>>::from_request_parts(parts, _state)
+                .await
+                .map_err(|_| AuthError::InternalError)?;
 
         // Authorizationヘッダーを取得
         let auth_header = parts
@@ -101,13 +102,18 @@ where
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         // ExtensionからJwtServiceを取得
-        let jwt_service = match Extension::<Arc<JwtService>>::from_request_parts(parts, _state).await {
-            Ok(Extension(service)) => service,
-            Err(_) => return Ok(OptionalAuthenticatedUser(None)),
-        };
+        let jwt_service =
+            match Extension::<Arc<JwtService>>::from_request_parts(parts, _state).await {
+                Ok(Extension(service)) => service,
+                Err(_) => return Ok(OptionalAuthenticatedUser(None)),
+            };
 
         // Authorizationヘッダーを取得
-        let auth_header = match parts.headers.get("Authorization").and_then(|h| h.to_str().ok()) {
+        let auth_header = match parts
+            .headers
+            .get("Authorization")
+            .and_then(|h| h.to_str().ok())
+        {
             Some(header) => header,
             None => return Ok(OptionalAuthenticatedUser(None)),
         };

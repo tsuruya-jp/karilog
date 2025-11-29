@@ -14,6 +14,9 @@ pub mod firearm_dto;
 // Phase3: 出猟管理
 pub mod hunting_record_dto;
 
+// Phase4: 帳簿出力
+pub mod report_dto;
+
 pub use auth_dto::*;
 
 // Phase2
@@ -26,3 +29,6 @@ pub use firearm_dto::*;
 
 // Phase3
 pub use hunting_record_dto::*;
+
+// Phase4
+pub use report_dto::*;

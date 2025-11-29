@@ -11,9 +11,6 @@ use std::sync::Arc;
 /// 実包在庫ユースケース
 pub struct AmmunitionStockUsecases {
     ammunition_type_repository: Arc<dyn AmmunitionTypeRepository>,
-    ammunition_purchase_repository: Arc<dyn AmmunitionPurchaseRepository>,
-    ammunition_usage_repository: Arc<dyn AmmunitionUsageRepository>,
-    ammunition_limit_repository: Arc<dyn AmmunitionLimitRepository>,
     stock_service: AmmunitionStockService,
 }
 
@@ -33,9 +30,6 @@ impl AmmunitionStockUsecases {
 
         Self {
             ammunition_type_repository,
-            ammunition_purchase_repository,
-            ammunition_usage_repository,
-            ammunition_limit_repository,
             stock_service,
         }
     }

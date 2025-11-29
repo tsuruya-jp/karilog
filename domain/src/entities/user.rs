@@ -66,10 +66,9 @@ impl User {
 
     /// パスワードリセットトークンが有効か確認
     pub fn is_password_reset_token_valid(&self, token: &str) -> bool {
-        if let (Some(stored_token), Some(expires_at)) = (
-            &self.password_reset_token,
-            &self.password_reset_expires_at,
-        ) {
+        if let (Some(stored_token), Some(expires_at)) =
+            (&self.password_reset_token, &self.password_reset_expires_at)
+        {
             stored_token == token && Utc::now() < *expires_at
         } else {
             false

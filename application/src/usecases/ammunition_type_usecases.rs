@@ -98,7 +98,12 @@ impl AmmunitionTypeUsecases {
             ));
         }
 
-        ammunition_type.update(request.name, request.caliber, request.shot_size, request.is_slug);
+        ammunition_type.update(
+            request.name,
+            request.caliber,
+            request.shot_size,
+            request.is_slug,
+        );
 
         self.ammunition_type_repository
             .save(&ammunition_type)

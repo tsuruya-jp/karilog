@@ -42,8 +42,9 @@ impl AmmunitionUsageUsecases {
             .hunting_record_id
             .as_ref()
             .map(|id| {
-                Uuid::parse_str(id)
-                    .map_err(|e| AppError::ValidationError(format!("Invalid hunting_record_id: {}", e)))
+                Uuid::parse_str(id).map_err(|e| {
+                    AppError::ValidationError(format!("Invalid hunting_record_id: {}", e))
+                })
             })
             .transpose()?;
 
@@ -57,7 +58,7 @@ impl AmmunitionUsageUsecases {
             request.quantity_used,
             request.notes,
         )
-        .map_err(|e| AppError::ValidationError(e))?;
+        .map_err(AppError::ValidationError)?;
 
         self.ammunition_usage_repository
             .save(&ammunition_usage)
@@ -140,8 +141,9 @@ impl AmmunitionUsageUsecases {
             .hunting_record_id
             .as_ref()
             .map(|id| {
-                Uuid::parse_str(id)
-                    .map_err(|e| AppError::ValidationError(format!("Invalid hunting_record_id: {}", e)))
+                Uuid::parse_str(id).map_err(|e| {
+                    AppError::ValidationError(format!("Invalid hunting_record_id: {}", e))
+                })
             })
             .transpose()?;
 
@@ -155,7 +157,7 @@ impl AmmunitionUsageUsecases {
                 request.quantity_used,
                 request.notes,
             )
-            .map_err(|e| AppError::ValidationError(e))?;
+            .map_err(AppError::ValidationError)?;
 
         self.ammunition_usage_repository
             .save(&ammunition_usage)

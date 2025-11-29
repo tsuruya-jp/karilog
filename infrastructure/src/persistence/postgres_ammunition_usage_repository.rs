@@ -219,14 +219,14 @@ impl AmmunitionUsageRepository for PostgresAmmunitionUsageRepository {
         .bind(ammunition_usage.user_id.as_uuid())
         .bind(ammunition_usage.ammunition_type_id.as_uuid())
         .bind(ammunition_usage.firearm_id.as_ref().map(|id| id.as_uuid()))
-        .bind(&ammunition_usage.hunting_record_id)
-        .bind(&ammunition_usage.usage_date)
+        .bind(ammunition_usage.hunting_record_id)
+        .bind(ammunition_usage.usage_date)
         .bind(&ammunition_usage.location)
-        .bind(&ammunition_usage.quantity_used)
+        .bind(ammunition_usage.quantity_used)
         .bind(&ammunition_usage.notes)
-        .bind(&ammunition_usage.created_at)
-        .bind(&ammunition_usage.updated_at)
-        .bind(&ammunition_usage.deleted_at)
+        .bind(ammunition_usage.created_at)
+        .bind(ammunition_usage.updated_at)
+        .bind(ammunition_usage.deleted_at)
         .execute(&self.pool)
         .await
         .map_err(|e| AppError::DatabaseError(e.to_string()))?;
@@ -248,9 +248,7 @@ impl AmmunitionUsageRepository for PostgresAmmunitionUsageRepository {
         .map_err(|e| AppError::DatabaseError(e.to_string()))?;
 
         if result.rows_affected() == 0 {
-            return Err(AppError::NotFound(
-                "AmmunitionUsage not found".to_string(),
-            ));
+            return Err(AppError::NotFound("AmmunitionUsage not found".to_string()));
         }
 
         Ok(())

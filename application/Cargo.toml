@@ -16,6 +16,7 @@ validator.workspace = true
 tracing.workspace = true
 async-trait.workspace = true
 md5.workspace = true
+base64.workspace = true
 
 [dev-dependencies]
 mockall.workspace = true

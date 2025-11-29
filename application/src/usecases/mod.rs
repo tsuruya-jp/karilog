@@ -14,6 +14,9 @@ pub mod firearm_usecases;
 // Phase3: 出猟管理
 pub mod hunting_record_usecases;
 
+// Phase4: 帳簿出力
+pub mod report_usecases;
+
 pub use auth_usecases::AuthUseCases;
 
 // Phase2
@@ -26,3 +29,6 @@ pub use firearm_usecases::FirearmUsecases;
 
 // Phase3
 pub use hunting_record_usecases::HuntingRecordUsecases;
+
+// Phase4
+pub use report_usecases::ReportUsecases;

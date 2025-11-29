@@ -2,7 +2,7 @@ use crate::dto::hunting_record_dto::{
     CreateHuntingRecordRequest, HuntingRecordResponse, HuntingStatisticsResponse,
     ListHuntingRecordsQuery, UpdateHuntingRecordRequest,
 };
-use chrono::{Datelike, NaiveDate, Utc};
+use chrono::{Datelike, Utc};
 use domain::entities::HuntingRecord;
 use domain::repositories::HuntingRecordRepository;
 use domain::value_objects::{HuntingRecordId, UserId};

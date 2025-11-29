@@ -12,9 +12,7 @@ pub struct FirearmUsecases {
 
 impl FirearmUsecases {
     pub fn new(firearm_repository: Arc<dyn FirearmRepository>) -> Self {
-        Self {
-            firearm_repository,
-        }
+        Self { firearm_repository }
     }
 
     /// 銃砲を作成
@@ -25,7 +23,7 @@ impl FirearmUsecases {
     ) -> Result<FirearmResponse, AppError> {
         let firearm_type = request
             .parse_firearm_type()
-            .map_err(|e| AppError::ValidationError(e))?;
+            .map_err(AppError::ValidationError)?;
 
         let firearm = Firearm::new(
             user_id,
@@ -68,10 +66,7 @@ impl FirearmUsecases {
     pub async fn list_firearms(&self, user_id: UserId) -> Result<Vec<FirearmResponse>, AppError> {
         let firearms = self.firearm_repository.find_by_user_id(&user_id).await?;
 
-        let responses = firearms
-            .into_iter()
-            .map(FirearmResponse::from)
-            .collect();
+        let responses = firearms.into_iter().map(FirearmResponse::from).collect();
 
         Ok(responses)
     }

@@ -1,3 +1,4 @@
+use crate::middleware::auth_middleware::AuthenticatedUser;
 use application::dto::{CreateAmmunitionPurchaseRequest, UpdateAmmunitionPurchaseRequest};
 use application::usecases::AmmunitionPurchaseUsecases;
 use axum::{
@@ -6,7 +7,6 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use crate::middleware::auth_middleware::AuthenticatedUser;
 use domain::value_objects::AmmunitionPurchaseId;
 use shared::error::AppError;
 use std::sync::Arc;
@@ -28,9 +28,8 @@ pub async fn get_ammunition_purchase(
     AuthenticatedUser(user_id): AuthenticatedUser,
     Path(ammunition_purchase_id): Path<String>,
 ) -> Result<impl IntoResponse, AppError> {
-    let ammunition_purchase_id = AmmunitionPurchaseId::from_str(&ammunition_purchase_id).map_err(
-        |e| AppError::ValidationError(format!("Invalid ammunition purchase ID: {}", e)),
-    )?;
+    let ammunition_purchase_id = AmmunitionPurchaseId::from_str(&ammunition_purchase_id)
+        .map_err(|e| AppError::ValidationError(format!("Invalid ammunition purchase ID: {}", e)))?;
 
     let response = ammunition_purchase_usecases
         .get_ammunition_purchase(user_id, ammunition_purchase_id)
@@ -56,9 +55,8 @@ pub async fn update_ammunition_purchase(
     Path(ammunition_purchase_id): Path<String>,
     Json(request): Json<UpdateAmmunitionPurchaseRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    let ammunition_purchase_id = AmmunitionPurchaseId::from_str(&ammunition_purchase_id).map_err(
-        |e| AppError::ValidationError(format!("Invalid ammunition purchase ID: {}", e)),
-    )?;
+    let ammunition_purchase_id = AmmunitionPurchaseId::from_str(&ammunition_purchase_id)
+        .map_err(|e| AppError::ValidationError(format!("Invalid ammunition purchase ID: {}", e)))?;
 
     let response = ammunition_purchase_usecases
         .update_ammunition_purchase(user_id, ammunition_purchase_id, request)
@@ -72,9 +70,8 @@ pub async fn delete_ammunition_purchase(
     AuthenticatedUser(user_id): AuthenticatedUser,
     Path(ammunition_purchase_id): Path<String>,
 ) -> Result<impl IntoResponse, AppError> {
-    let ammunition_purchase_id = AmmunitionPurchaseId::from_str(&ammunition_purchase_id).map_err(
-        |e| AppError::ValidationError(format!("Invalid ammunition purchase ID: {}", e)),
-    )?;
+    let ammunition_purchase_id = AmmunitionPurchaseId::from_str(&ammunition_purchase_id)
+        .map_err(|e| AppError::ValidationError(format!("Invalid ammunition purchase ID: {}", e)))?;
 
     ammunition_purchase_usecases
         .delete_ammunition_purchase(user_id, ammunition_purchase_id)

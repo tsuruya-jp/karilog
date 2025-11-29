@@ -14,10 +14,8 @@ pub trait UserRepository: Send + Sync {
     async fn find_by_email(&self, email: &Email) -> Result<Option<User>, AppError>;
 
     /// メール確認トークンでユーザーを検索
-    async fn find_by_email_verification_token(
-        &self,
-        token: &str,
-    ) -> Result<Option<User>, AppError>;
+    async fn find_by_email_verification_token(&self, token: &str)
+        -> Result<Option<User>, AppError>;
 
     /// パスワードリセットトークンでユーザーを検索
     async fn find_by_password_reset_token(&self, token: &str) -> Result<Option<User>, AppError>;
@@ -50,6 +48,5 @@ pub trait UserRepository: Send + Sync {
     async fn delete_refresh_token(&self, id: &Uuid) -> Result<(), AppError>;
 
     /// ユーザーの全てのリフレッシュトークンを無効化
-    async fn revoke_all_refresh_tokens_for_user(&self, user_id: &UserId)
-        -> Result<(), AppError>;
+    async fn revoke_all_refresh_tokens_for_user(&self, user_id: &UserId) -> Result<(), AppError>;
 }

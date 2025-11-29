@@ -14,6 +14,9 @@ pub mod firearm_handlers;
 // Phase3: 出猟管理
 pub mod hunting_record_handlers;
 
+// Phase4: 帳簿出力
+pub mod report_handlers;
+
 pub use auth_handlers::*;
 
 // Phase2
@@ -26,3 +29,6 @@ pub use firearm_handlers::*;
 
 // Phase3
 pub use hunting_record_handlers::*;
+
+// Phase4
+pub use report_handlers::*;

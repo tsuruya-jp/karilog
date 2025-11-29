@@ -18,6 +18,7 @@ impl AmmunitionLimitId {
     }
 
     /// UUID文字列から生成
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Result<Self, uuid::Error> {
         Ok(Self(Uuid::parse_str(s)?))
     }

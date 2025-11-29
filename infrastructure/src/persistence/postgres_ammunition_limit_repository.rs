@@ -128,9 +128,9 @@ impl AmmunitionLimitRepository for PostgresAmmunitionLimitRepository {
         .bind(ammunition_limit.id.as_uuid())
         .bind(ammunition_limit.user_id.as_uuid())
         .bind(&ammunition_limit.caliber)
-        .bind(&ammunition_limit.max_quantity)
-        .bind(&ammunition_limit.created_at)
-        .bind(&ammunition_limit.updated_at)
+        .bind(ammunition_limit.max_quantity)
+        .bind(ammunition_limit.created_at)
+        .bind(ammunition_limit.updated_at)
         .execute(&self.pool)
         .await
         .map_err(|e| AppError::DatabaseError(e.to_string()))?;
@@ -151,9 +151,7 @@ impl AmmunitionLimitRepository for PostgresAmmunitionLimitRepository {
         .map_err(|e| AppError::DatabaseError(e.to_string()))?;
 
         if result.rows_affected() == 0 {
-            return Err(AppError::NotFound(
-                "AmmunitionLimit not found".to_string(),
-            ));
+            return Err(AppError::NotFound("AmmunitionLimit not found".to_string()));
         }
 
         Ok(())

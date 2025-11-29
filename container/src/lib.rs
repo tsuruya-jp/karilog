@@ -5,14 +5,16 @@ use anyhow::Result;
 use application::usecases::{
     AmmunitionLimitUsecases, AmmunitionPurchaseUsecases, AmmunitionStockUsecases,
     AmmunitionTypeUsecases, AmmunitionUsageUsecases, AuthUseCases, FirearmUsecases,
-    HuntingRecordUsecases,
+    HuntingRecordUsecases, ReportUsecases,
 };
 use infrastructure::persistence::{
     PostgresAmmunitionLimitRepository, PostgresAmmunitionPurchaseRepository,
     PostgresAmmunitionTypeRepository, PostgresAmmunitionUsageRepository, PostgresFirearmRepository,
     PostgresHuntingRecordRepository, PostgresUserRepository,
 };
-use infrastructure::services::{ConsoleEmailService, JwtService, PasswordService};
+use infrastructure::services::{
+    ConsoleEmailService, CsvService, JwtService, PasswordService, PdfService,
+};
 use shared::config::AppConfig;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Pool, Postgres};
@@ -41,6 +43,10 @@ pub struct Container {
     // Phase3: 出猟管理
     pub hunting_record_repository: Arc<PostgresHuntingRecordRepository>,
     pub hunting_record_usecases: Arc<HuntingRecordUsecases>,
+    // Phase4: 帳簿出力
+    pub pdf_service: Arc<PdfService>,
+    pub csv_service: Arc<CsvService>,
+    pub report_usecases: Arc<ReportUsecases>,
 }
 
 impl Container {
@@ -90,8 +96,9 @@ impl Container {
 
         // Phase2: 銃砲・実包管理ユースケース
         let firearm_usecases = Arc::new(FirearmUsecases::new(firearm_repository.clone()));
-        let ammunition_type_usecases =
-            Arc::new(AmmunitionTypeUsecases::new(ammunition_type_repository.clone()));
+        let ammunition_type_usecases = Arc::new(AmmunitionTypeUsecases::new(
+            ammunition_type_repository.clone(),
+        ));
         let ammunition_limit_usecases = Arc::new(AmmunitionLimitUsecases::new(
             ammunition_limit_repository.clone(),
         ));
@@ -109,8 +116,20 @@ impl Container {
         ));
 
         // Phase3: 出猟管理ユースケース
-        let hunting_record_usecases =
-            Arc::new(HuntingRecordUsecases::new(hunting_record_repository.clone()));
+        let hunting_record_usecases = Arc::new(HuntingRecordUsecases::new(
+            hunting_record_repository.clone(),
+        ));
+
+        // Phase4: 帳簿出力サービスとユースケース
+        let pdf_service = Arc::new(PdfService::new());
+        let csv_service = Arc::new(CsvService::new());
+        let report_usecases = Arc::new(ReportUsecases::new(
+            ammunition_purchase_repository.clone(),
+            ammunition_usage_repository.clone(),
+            hunting_record_repository.clone(),
+            pdf_service.clone(),
+            csv_service.clone(),
+        ));
 
         Ok(Arc::new(Self {
             config,
@@ -133,6 +152,9 @@ impl Container {
             ammunition_stock_usecases,
             hunting_record_repository,
             hunting_record_usecases,
+            pdf_service,
+            csv_service,
+            report_usecases,
         }))
     }
 

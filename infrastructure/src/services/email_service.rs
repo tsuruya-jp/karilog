@@ -73,6 +73,7 @@ impl EmailService for ConsoleEmailService {
 
 /// SMTP経由でメールを送信するサービス（本番用・未実装）
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct SmtpEmailService {
     smtp_host: String,
     smtp_port: u16,

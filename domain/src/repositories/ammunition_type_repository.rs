@@ -7,10 +7,7 @@ use shared::error::AppError;
 #[async_trait]
 pub trait AmmunitionTypeRepository: Send + Sync {
     /// IDで実包種別を検索
-    async fn find_by_id(
-        &self,
-        id: &AmmunitionTypeId,
-    ) -> Result<Option<AmmunitionType>, AppError>;
+    async fn find_by_id(&self, id: &AmmunitionTypeId) -> Result<Option<AmmunitionType>, AppError>;
 
     /// ユーザーの実包種別一覧を取得（削除されていないもののみ）
     async fn find_by_user_id(&self, user_id: &UserId) -> Result<Vec<AmmunitionType>, AppError>;

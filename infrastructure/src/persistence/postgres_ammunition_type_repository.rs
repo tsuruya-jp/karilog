@@ -19,10 +19,7 @@ impl PostgresAmmunitionTypeRepository {
 
 #[async_trait]
 impl AmmunitionTypeRepository for PostgresAmmunitionTypeRepository {
-    async fn find_by_id(
-        &self,
-        id: &AmmunitionTypeId,
-    ) -> Result<Option<AmmunitionType>, AppError> {
+    async fn find_by_id(&self, id: &AmmunitionTypeId) -> Result<Option<AmmunitionType>, AppError> {
         let result = sqlx::query(
             r#"
             SELECT id, user_id, name, caliber, shot_size, is_slug,
@@ -147,10 +144,10 @@ impl AmmunitionTypeRepository for PostgresAmmunitionTypeRepository {
         .bind(&ammunition_type.name)
         .bind(&ammunition_type.caliber)
         .bind(&ammunition_type.shot_size)
-        .bind(&ammunition_type.is_slug)
-        .bind(&ammunition_type.created_at)
-        .bind(&ammunition_type.updated_at)
-        .bind(&ammunition_type.deleted_at)
+        .bind(ammunition_type.is_slug)
+        .bind(ammunition_type.created_at)
+        .bind(ammunition_type.updated_at)
+        .bind(ammunition_type.deleted_at)
         .execute(&self.pool)
         .await
         .map_err(|e| AppError::DatabaseError(e.to_string()))?;

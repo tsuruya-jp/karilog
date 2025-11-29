@@ -8,10 +8,8 @@ use shared::error::AppError;
 #[async_trait]
 pub trait AmmunitionUsageRepository: Send + Sync {
     /// IDで実包使用記録を検索
-    async fn find_by_id(
-        &self,
-        id: &AmmunitionUsageId,
-    ) -> Result<Option<AmmunitionUsage>, AppError>;
+    async fn find_by_id(&self, id: &AmmunitionUsageId)
+        -> Result<Option<AmmunitionUsage>, AppError>;
 
     /// ユーザーの実包使用記録一覧を取得（削除されていないもののみ）
     async fn find_by_user_id(&self, user_id: &UserId) -> Result<Vec<AmmunitionUsage>, AppError>;

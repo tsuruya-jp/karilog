@@ -14,10 +14,7 @@ pub trait AmmunitionPurchaseRepository: Send + Sync {
     ) -> Result<Option<AmmunitionPurchase>, AppError>;
 
     /// ユーザーの実包購入記録一覧を取得（削除されていないもののみ）
-    async fn find_by_user_id(
-        &self,
-        user_id: &UserId,
-    ) -> Result<Vec<AmmunitionPurchase>, AppError>;
+    async fn find_by_user_id(&self, user_id: &UserId) -> Result<Vec<AmmunitionPurchase>, AppError>;
 
     /// ユーザーの日付範囲内の実包購入記録一覧を取得（削除されていないもののみ）
     async fn find_by_user_id_and_date_range(

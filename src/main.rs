@@ -40,7 +40,7 @@ async fn main() -> anyhow::Result<()> {
         auth_usecases: container.auth_usecases.clone(),
     };
 
-    // Axumアプリ構築（Phase2・Phase3のユースケースも含む）
+    // Axumアプリ構築（Phase2・Phase3・Phase4のユースケースも含む）
     let app = presentation::routes::create_router(
         auth_state,
         container.jwt_service.clone(),
@@ -51,6 +51,7 @@ async fn main() -> anyhow::Result<()> {
         container.ammunition_usage_usecases.clone(),
         container.ammunition_stock_usecases.clone(),
         container.hunting_record_usecases.clone(),
+        container.report_usecases.clone(),
     )
     .layer(
         CorsLayer::new()

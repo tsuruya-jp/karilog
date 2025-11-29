@@ -1,10 +1,10 @@
 use crate::dto::{
     DeleteAccountRequest, DeleteAccountResponse, LoginRequest, LoginResponse, LogoutRequest,
-    LogoutResponse, RefreshTokenRequest, RefreshTokenResponse, RegisterRequest,
-    RegisterResponse, RequestPasswordResetRequest, RequestPasswordResetResponse,
-    ResendVerificationEmailRequest, ResendVerificationEmailResponse, ResetPasswordRequest,
-    ResetPasswordResponse, UpdateUserInfoRequest, UpdateUserInfoResponse, UserInfoResponse,
-    VerifyEmailRequest, VerifyEmailResponse,
+    LogoutResponse, RefreshTokenRequest, RefreshTokenResponse, RegisterRequest, RegisterResponse,
+    RequestPasswordResetRequest, RequestPasswordResetResponse, ResendVerificationEmailRequest,
+    ResendVerificationEmailResponse, ResetPasswordRequest, ResetPasswordResponse,
+    UpdateUserInfoRequest, UpdateUserInfoResponse, UserInfoResponse, VerifyEmailRequest,
+    VerifyEmailResponse,
 };
 use domain::entities::{RefreshToken, User};
 use domain::repositories::UserRepository;
@@ -52,7 +52,7 @@ impl<R: UserRepository, E: EmailService> AuthUseCases<R, E> {
             .map_err(|e| AppError::ValidationError(format!("Invalid password: {:?}", e)))?;
 
         // メールアドレスの重複チェック
-        if let Some(_) = self.user_repository.find_by_email(&email).await? {
+        if self.user_repository.find_by_email(&email).await?.is_some() {
             return Err(AppError::BadRequest(
                 "Email address already registered".to_string(),
             ));
@@ -88,7 +88,9 @@ impl<R: UserRepository, E: EmailService> AuthUseCases<R, E> {
             refresh_token_hash,
             self.jwt_service.get_refresh_token_expires_in_days(),
         );
-        self.user_repository.save_refresh_token(&refresh_token).await?;
+        self.user_repository
+            .save_refresh_token(&refresh_token)
+            .await?;
 
         Ok(RegisterResponse {
             user_id: user.id.to_string(),
@@ -146,7 +148,9 @@ impl<R: UserRepository, E: EmailService> AuthUseCases<R, E> {
             refresh_token_hash,
             self.jwt_service.get_refresh_token_expires_in_days(),
         );
-        self.user_repository.save_refresh_token(&refresh_token).await?;
+        self.user_repository
+            .save_refresh_token(&refresh_token)
+            .await?;
 
         Ok(LoginResponse {
             user_id: user.id.to_string(),

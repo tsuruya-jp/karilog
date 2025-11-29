@@ -7,9 +7,9 @@ use shared::error::AppError;
 /// JWTトークンのクレーム
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String,     // Subject (ユーザーID)
-    pub exp: i64,        // Expiration time
-    pub iat: i64,        // Issued at
+    pub sub: String,        // Subject (ユーザーID)
+    pub exp: i64,           // Expiration time
+    pub iat: i64,           // Issued at
     pub token_type: String, // "access" or "refresh"
 }
 
@@ -92,9 +92,7 @@ impl JwtService {
         let claims = self.verify_token(token)?;
 
         if claims.token_type != "access" {
-            return Err(AppError::Unauthorized(
-                "Invalid token type".to_string(),
-            ));
+            return Err(AppError::Unauthorized("Invalid token type".to_string()));
         }
 
         UserId::from_str(&claims.sub)
@@ -106,9 +104,7 @@ impl JwtService {
         let claims = self.verify_token(token)?;
 
         if claims.token_type != "refresh" {
-            return Err(AppError::Unauthorized(
-                "Invalid token type".to_string(),
-            ));
+            return Err(AppError::Unauthorized("Invalid token type".to_string()));
         }
 
         UserId::from_str(&claims.sub)

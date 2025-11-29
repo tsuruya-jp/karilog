@@ -47,7 +47,7 @@ impl AmmunitionPurchaseUsecases {
             request.price,
             request.notes,
         )
-        .map_err(|e| AppError::ValidationError(e))?;
+        .map_err(AppError::ValidationError)?;
 
         self.ammunition_purchase_repository
             .save(&ammunition_purchase)
@@ -136,7 +136,7 @@ impl AmmunitionPurchaseUsecases {
                 request.price,
                 request.notes,
             )
-            .map_err(|e| AppError::ValidationError(e))?;
+            .map_err(AppError::ValidationError)?;
 
         self.ammunition_purchase_repository
             .save(&ammunition_purchase)

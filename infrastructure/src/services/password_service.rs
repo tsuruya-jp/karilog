@@ -21,9 +21,7 @@ impl PasswordService {
 
         let password_hash = argon2
             .hash_password(password.as_str().as_bytes(), &salt)
-            .map_err(|e| {
-                AppError::InternalServerError(format!("Failed to hash password: {}", e))
-            })?
+            .map_err(|e| AppError::InternalServerError(format!("Failed to hash password: {}", e)))?
             .to_string();
 
         Ok(DomainPasswordHash::new(password_hash))
@@ -66,9 +64,7 @@ mod tests {
         let hash = service.hash_password(&password).unwrap();
 
         // 正しいパスワードで検証
-        assert!(service
-            .verify_password(password.as_str(), &hash)
-            .unwrap());
+        assert!(service.verify_password(password.as_str(), &hash).unwrap());
 
         // 間違ったパスワードで検証
         assert!(!service.verify_password("WrongPassword", &hash).unwrap());
@@ -86,11 +82,7 @@ mod tests {
         assert_ne!(hash1.as_str(), hash2.as_str());
 
         // しかし、両方とも元のパスワードで検証できる
-        assert!(service
-            .verify_password(password.as_str(), &hash1)
-            .unwrap());
-        assert!(service
-            .verify_password(password.as_str(), &hash2)
-            .unwrap());
+        assert!(service.verify_password(password.as_str(), &hash1).unwrap());
+        assert!(service.verify_password(password.as_str(), &hash2).unwrap());
     }
 }

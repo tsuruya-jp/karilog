@@ -115,9 +115,7 @@ impl AmmunitionStockService {
         let mut stocks = Vec::new();
 
         for ammunition_type in ammunition_types {
-            let stock = self
-                .calculate_stock(user_id, ammunition_type.id.clone())
-                .await?;
+            let stock = self.calculate_stock(user_id, ammunition_type.id).await?;
             stocks.push(stock);
         }
 

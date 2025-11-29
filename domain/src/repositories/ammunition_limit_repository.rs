@@ -7,10 +7,8 @@ use shared::error::AppError;
 #[async_trait]
 pub trait AmmunitionLimitRepository: Send + Sync {
     /// IDで実包所持許可上限を検索
-    async fn find_by_id(
-        &self,
-        id: &AmmunitionLimitId,
-    ) -> Result<Option<AmmunitionLimit>, AppError>;
+    async fn find_by_id(&self, id: &AmmunitionLimitId)
+        -> Result<Option<AmmunitionLimit>, AppError>;
 
     /// ユーザーの実包所持許可上限一覧を取得
     async fn find_by_user_id(&self, user_id: &UserId) -> Result<Vec<AmmunitionLimit>, AppError>;

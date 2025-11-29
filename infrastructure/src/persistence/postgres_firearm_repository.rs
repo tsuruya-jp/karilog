@@ -141,9 +141,9 @@ impl FirearmRepository for PostgresFirearmRepository {
         .bind(&firearm.permit_number)
         .bind(&firearm.caliber)
         .bind(&firearm.notes)
-        .bind(&firearm.created_at)
-        .bind(&firearm.updated_at)
-        .bind(&firearm.deleted_at)
+        .bind(firearm.created_at)
+        .bind(firearm.updated_at)
+        .bind(firearm.deleted_at)
         .execute(&self.pool)
         .await
         .map_err(|e| AppError::DatabaseError(e.to_string()))?;

@@ -41,8 +41,9 @@ impl UserRepository for PostgresUserRepository {
             Some(row) => {
                 let user = User {
                     id: UserId::from_uuid(row.get("id")),
-                    email: Email::new(row.get("email"))
-                        .map_err(|e| AppError::ValidationError(format!("Invalid email: {:?}", e)))?,
+                    email: Email::new(row.get("email")).map_err(|e| {
+                        AppError::ValidationError(format!("Invalid email: {:?}", e))
+                    })?,
                     password_hash: PasswordHash::new(row.get("password_hash")),
                     name: row.get("name"),
                     email_verified: row.get("email_verified"),
@@ -83,8 +84,9 @@ impl UserRepository for PostgresUserRepository {
             Some(row) => {
                 let user = User {
                     id: UserId::from_uuid(row.get("id")),
-                    email: Email::new(row.get("email"))
-                        .map_err(|e| AppError::ValidationError(format!("Invalid email: {:?}", e)))?,
+                    email: Email::new(row.get("email")).map_err(|e| {
+                        AppError::ValidationError(format!("Invalid email: {:?}", e))
+                    })?,
                     password_hash: PasswordHash::new(row.get("password_hash")),
                     name: row.get("name"),
                     email_verified: row.get("email_verified"),
@@ -128,8 +130,9 @@ impl UserRepository for PostgresUserRepository {
             Some(row) => {
                 let user = User {
                     id: UserId::from_uuid(row.get("id")),
-                    email: Email::new(row.get("email"))
-                        .map_err(|e| AppError::ValidationError(format!("Invalid email: {:?}", e)))?,
+                    email: Email::new(row.get("email")).map_err(|e| {
+                        AppError::ValidationError(format!("Invalid email: {:?}", e))
+                    })?,
                     password_hash: PasswordHash::new(row.get("password_hash")),
                     name: row.get("name"),
                     email_verified: row.get("email_verified"),
@@ -170,8 +173,9 @@ impl UserRepository for PostgresUserRepository {
             Some(row) => {
                 let user = User {
                     id: UserId::from_uuid(row.get("id")),
-                    email: Email::new(row.get("email"))
-                        .map_err(|e| AppError::ValidationError(format!("Invalid email: {:?}", e)))?,
+                    email: Email::new(row.get("email")).map_err(|e| {
+                        AppError::ValidationError(format!("Invalid email: {:?}", e))
+                    })?,
                     password_hash: PasswordHash::new(row.get("password_hash")),
                     name: row.get("name"),
                     email_verified: row.get("email_verified"),
@@ -223,14 +227,14 @@ impl UserRepository for PostgresUserRepository {
         .bind(&user.name)
         .bind(user.email_verified)
         .bind(&user.email_verification_token)
-        .bind(&user.email_verification_expires_at)
+        .bind(user.email_verification_expires_at)
         .bind(&user.password_reset_token)
-        .bind(&user.password_reset_expires_at)
+        .bind(user.password_reset_expires_at)
         .bind(user.failed_login_attempts)
-        .bind(&user.locked_until)
-        .bind(&user.created_at)
-        .bind(&user.updated_at)
-        .bind(&user.deleted_at)
+        .bind(user.locked_until)
+        .bind(user.created_at)
+        .bind(user.updated_at)
+        .bind(user.deleted_at)
         .execute(&self.pool)
         .await
         .map_err(|e| AppError::DatabaseError(e.to_string()))?;
@@ -361,12 +365,12 @@ impl UserRepository for PostgresUserRepository {
                 revoked_at = EXCLUDED.revoked_at
             "#,
         )
-        .bind(&token.id)
+        .bind(token.id)
         .bind(token.user_id.as_uuid())
         .bind(&token.token_hash)
-        .bind(&token.expires_at)
-        .bind(&token.created_at)
-        .bind(&token.revoked_at)
+        .bind(token.expires_at)
+        .bind(token.created_at)
+        .bind(token.revoked_at)
         .execute(&self.pool)
         .await
         .map_err(|e| AppError::DatabaseError(e.to_string()))?;
@@ -389,10 +393,7 @@ impl UserRepository for PostgresUserRepository {
         Ok(())
     }
 
-    async fn revoke_all_refresh_tokens_for_user(
-        &self,
-        user_id: &UserId,
-    ) -> Result<(), AppError> {
+    async fn revoke_all_refresh_tokens_for_user(&self, user_id: &UserId) -> Result<(), AppError> {
         sqlx::query(
             r#"
             UPDATE refresh_tokens

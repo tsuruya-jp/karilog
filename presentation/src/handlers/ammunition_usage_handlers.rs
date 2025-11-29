@@ -1,3 +1,4 @@
+use crate::middleware::auth_middleware::AuthenticatedUser;
 use application::dto::{CreateAmmunitionUsageRequest, UpdateAmmunitionUsageRequest};
 use application::usecases::AmmunitionUsageUsecases;
 use axum::{
@@ -6,7 +7,6 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use crate::middleware::auth_middleware::AuthenticatedUser;
 use domain::value_objects::AmmunitionUsageId;
 use shared::error::AppError;
 use std::sync::Arc;

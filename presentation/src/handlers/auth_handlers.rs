@@ -143,7 +143,10 @@ pub async fn resend_verification_email(
         .map_err(|e| AppError::ValidationError(format!("Validation failed: {}", e)))?;
 
     // ユースケースを実行
-    let response = state.auth_usecases.resend_verification_email(request).await?;
+    let response = state
+        .auth_usecases
+        .resend_verification_email(request)
+        .await?;
 
     Ok((StatusCode::OK, Json(response)))
 }
@@ -160,7 +163,10 @@ pub async fn update_user_info(
         .map_err(|e| AppError::ValidationError(format!("Validation failed: {}", e)))?;
 
     // ユースケースを実行
-    let response = state.auth_usecases.update_user_info(&user_id, request).await?;
+    let response = state
+        .auth_usecases
+        .update_user_info(&user_id, request)
+        .await?;
 
     Ok((StatusCode::OK, Json(response)))
 }
@@ -177,7 +183,10 @@ pub async fn delete_account(
         .map_err(|e| AppError::ValidationError(format!("Validation failed: {}", e)))?;
 
     // ユースケースを実行
-    let response = state.auth_usecases.delete_account(&user_id, request).await?;
+    let response = state
+        .auth_usecases
+        .delete_account(&user_id, request)
+        .await?;
 
     Ok((StatusCode::OK, Json(response)))
 }

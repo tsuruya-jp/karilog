@@ -26,10 +26,11 @@ impl AmmunitionLimitUsecases {
         request: CreateAmmunitionLimitRequest,
     ) -> Result<AmmunitionLimitResponse, AppError> {
         // 同じ口径の上限が既に存在するか確認
-        if let Some(_) = self
+        if self
             .ammunition_limit_repository
             .find_by_user_id_and_caliber(&user_id, &request.caliber)
             .await?
+            .is_some()
         {
             return Err(AppError::ValidationError(format!(
                 "Ammunition limit for caliber {} already exists",
@@ -38,7 +39,7 @@ impl AmmunitionLimitUsecases {
         }
 
         let ammunition_limit = AmmunitionLimit::new(user_id, request.caliber, request.max_quantity)
-            .map_err(|e| AppError::ValidationError(e))?;
+            .map_err(AppError::ValidationError)?;
 
         self.ammunition_limit_repository
             .save(&ammunition_limit)
@@ -107,7 +108,7 @@ impl AmmunitionLimitUsecases {
 
         ammunition_limit
             .update_max_quantity(request.max_quantity)
-            .map_err(|e| AppError::ValidationError(e))?;
+            .map_err(AppError::ValidationError)?;
 
         self.ammunition_limit_repository
             .save(&ammunition_limit)

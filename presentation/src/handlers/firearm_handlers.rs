@@ -1,3 +1,4 @@
+use crate::middleware::auth_middleware::AuthenticatedUser;
 use application::dto::{CreateFirearmRequest, UpdateFirearmRequest};
 use application::usecases::FirearmUsecases;
 use axum::{
@@ -6,7 +7,6 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use crate::middleware::auth_middleware::AuthenticatedUser;
 use domain::value_objects::FirearmId;
 use shared::error::AppError;
 use std::sync::Arc;
@@ -17,9 +17,7 @@ pub async fn create_firearm(
     AuthenticatedUser(user_id): AuthenticatedUser,
     Json(request): Json<CreateFirearmRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    let response = firearm_usecases
-        .create_firearm(user_id, request)
-        .await?;
+    let response = firearm_usecases.create_firearm(user_id, request).await?;
 
     Ok((StatusCode::CREATED, Json(response)))
 }

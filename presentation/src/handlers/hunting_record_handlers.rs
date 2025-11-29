@@ -1,3 +1,4 @@
+use crate::middleware::auth_middleware::AuthenticatedUser;
 use application::dto::{
     CreateHuntingRecordRequest, ListHuntingRecordsQuery, UpdateHuntingRecordRequest,
 };
@@ -8,7 +9,6 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use crate::middleware::auth_middleware::AuthenticatedUser;
 use domain::value_objects::HuntingRecordId;
 use shared::error::AppError;
 use std::sync::Arc;

@@ -61,10 +61,7 @@ impl AmmunitionPurchaseRepository for PostgresAmmunitionPurchaseRepository {
         }
     }
 
-    async fn find_by_user_id(
-        &self,
-        user_id: &UserId,
-    ) -> Result<Vec<AmmunitionPurchase>, AppError> {
+    async fn find_by_user_id(&self, user_id: &UserId) -> Result<Vec<AmmunitionPurchase>, AppError> {
         let rows = sqlx::query(
             r#"
             SELECT id, user_id, ammunition_type_id, firearm_id, purchase_date,
@@ -220,15 +217,20 @@ impl AmmunitionPurchaseRepository for PostgresAmmunitionPurchaseRepository {
         .bind(ammunition_purchase.id.as_uuid())
         .bind(ammunition_purchase.user_id.as_uuid())
         .bind(ammunition_purchase.ammunition_type_id.as_uuid())
-        .bind(ammunition_purchase.firearm_id.as_ref().map(|id| id.as_uuid()))
-        .bind(&ammunition_purchase.purchase_date)
+        .bind(
+            ammunition_purchase
+                .firearm_id
+                .as_ref()
+                .map(|id| id.as_uuid()),
+        )
+        .bind(ammunition_purchase.purchase_date)
         .bind(&ammunition_purchase.supplier)
-        .bind(&ammunition_purchase.quantity)
-        .bind(&ammunition_purchase.price)
+        .bind(ammunition_purchase.quantity)
+        .bind(ammunition_purchase.price)
         .bind(&ammunition_purchase.notes)
-        .bind(&ammunition_purchase.created_at)
-        .bind(&ammunition_purchase.updated_at)
-        .bind(&ammunition_purchase.deleted_at)
+        .bind(ammunition_purchase.created_at)
+        .bind(ammunition_purchase.updated_at)
+        .bind(ammunition_purchase.deleted_at)
         .execute(&self.pool)
         .await
         .map_err(|e| AppError::DatabaseError(e.to_string()))?;

@@ -1543,109 +1543,161 @@ paths:
   # 帳簿出力 API
   # ============================================================
 
-  /reports/ammunition-ledger:
-    get:
+  /reports/ammunition-ledger/pdf:
+    post:
       tags:
         - Reports
-      summary: 実包管理帳簿PDF出力
+      summary: 実包管理帳簿PDF生成
       description: |
-        指定期間の実包管理帳簿をPDFで出力します。
+        指定期間の実包管理帳簿をPDF形式で生成します。
         警察提出用のフォーマットに対応しています。
-      operationId: generateAmmunitionLedger
-      parameters:
-        - name: from_date
-          in: query
-          required: true
-          description: 開始日
-          schema:
-            type: string
-            format: date
-        - name: to_date
-          in: query
-          required: true
-          description: 終了日
-          schema:
-            type: string
-            format: date
-        - name: ammunition_type_id
-          in: query
-          description: 実包種別ID（指定しない場合は全種別）
-          schema:
-            type: string
-            format: uuid
-        - name: format
-          in: query
-          description: 出力形式
-          schema:
-            type: string
-            enum: [pdf, csv]
-            default: pdf
+        購入記録と使用記録を含みます。
+      operationId: generateAmmunitionLedgerPdf
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
       responses:
         '200':
-          description: 帳簿出力成功
+          description: PDF生成成功
           content:
-            application/pdf:
+            application/json:
               schema:
-                type: string
-                format: binary
-            text/csv:
-              schema:
-                type: string
-          headers:
-            Content-Disposition:
-              schema:
-                type: string
-              description: 'attachment; filename="ammunition_ledger_20250101_20251231.pdf"'
+                type: object
+                properties:
+                  pdf_data:
+                    type: string
+                    description: Base64エンコードされたPDFデータ
+                  filename:
+                    type: string
+                    example: "ammunition_ledger_20240101_20241231.pdf"
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /reports/hunting-summary:
-    get:
+  /reports/hunting-summary/pdf:
+    post:
       tags:
         - Reports
-      summary: 出猟サマリーPDF出力
-      description: 指定期間の出猟サマリーをPDFで出力します。
-      operationId: generateHuntingSummary
-      parameters:
-        - name: from_date
-          in: query
-          required: true
-          description: 開始日
-          schema:
-            type: string
-            format: date
-        - name: to_date
-          in: query
-          required: true
-          description: 終了日
-          schema:
-            type: string
-            format: date
-        - name: format
-          in: query
-          description: 出力形式
-          schema:
-            type: string
-            enum: [pdf, csv]
-            default: pdf
+      summary: 出猟サマリーPDF生成
+      description: 指定期間の出猟サマリーをPDF形式で生成します。
+      operationId: generateHuntingSummaryPdf
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
       responses:
         '200':
-          description: サマリー出力成功
+          description: PDF生成成功
           content:
-            application/pdf:
+            application/json:
               schema:
-                type: string
-                format: binary
+                type: object
+                properties:
+                  pdf_data:
+                    type: string
+                    description: Base64エンコードされたPDFデータ
+                  filename:
+                    type: string
+                    example: "hunting_summary_20240101_20241231.pdf"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /reports/ammunition-purchases/csv:
+    post:
+      tags:
+        - Reports
+      summary: 実包購入履歴CSV出力
+      description: 指定期間の実包購入履歴をCSV形式で出力します。
+      operationId: generateAmmunitionPurchasesCsv
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+      responses:
+        '200':
+          description: CSV生成成功
+          content:
             text/csv:
               schema:
                 type: string
+                description: CSV形式の実包購入履歴データ
           headers:
             Content-Disposition:
               schema:
                 type: string
-              description: 'attachment; filename="hunting_summary_20250101_20251231.pdf"'
+              description: 'attachment; filename="ammunition_purchases_20240101_20241231.csv"'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /reports/ammunition-usages/csv:
+    post:
+      tags:
+        - Reports
+      summary: 実包使用履歴CSV出力
+      description: 指定期間の実包使用履歴をCSV形式で出力します。
+      operationId: generateAmmunitionUsagesCsv
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+      responses:
+        '200':
+          description: CSV生成成功
+          content:
+            text/csv:
+              schema:
+                type: string
+                description: CSV形式の実包使用履歴データ
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: 'attachment; filename="ammunition_usages_20240101_20241231.csv"'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /reports/hunting-records/csv:
+    post:
+      tags:
+        - Reports
+      summary: 出猟記録CSV出力
+      description: 指定期間の出猟記録をCSV形式で出力します。
+      operationId: generateHuntingRecordsCsv
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+      responses:
+        '200':
+          description: CSV生成成功
+          content:
+            text/csv:
+              schema:
+                type: string
+                description: CSV形式の出猟記録データ
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: 'attachment; filename="hunting_records_20240101_20241231.csv"'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2667,6 +2719,23 @@ components:
         notes:
           type: string
           description: 備考
+
+    ReportRequest:
+      type: object
+      required:
+        - start_date
+        - end_date
+      properties:
+        start_date:
+          type: string
+          format: date
+          description: 開始日
+          example: "2024-01-01"
+        end_date:
+          type: string
+          format: date
+          description: 終了日
+          example: "2024-12-31"
 
     HuntingStatistics:
       type: object

@@ -72,6 +72,8 @@ md5 = "0.7"
 validator = { version = "0.18", features = ["derive"] }
 # PDF生成
 genpdf = "0.2"
+# Base64エンコーディング
+base64 = "0.22"
 # メール送信
 aws-sdk-sesv2 = "1"
 aws-config = "1"

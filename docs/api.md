@@ -104,8 +104,11 @@ docker run -p 8080:8080 -e SWAGGER_JSON=/docs/swagger.yml -v $(pwd)/docs:/docs s
 
 | メソッド | パス | 説明 |
 |----------|------|------|
-| GET | /api/v1/reports/ammunition-ledger | 実包管理帳簿PDF出力 |
-| GET | /api/v1/reports/hunting-summary | 出猟サマリーPDF出力 |
+| POST | /api/v1/reports/ammunition-ledger/pdf | 実包管理帳簿PDF生成 |
+| POST | /api/v1/reports/hunting-summary/pdf | 出猟サマリーPDF生成 |
+| POST | /api/v1/reports/ammunition-purchases/csv | 実包購入履歴CSV出力 |
+| POST | /api/v1/reports/ammunition-usages/csv | 実包使用履歴CSV出力 |
+| POST | /api/v1/reports/hunting-records/csv | 出猟記録CSV出力 |
 
 ## 認証
 
